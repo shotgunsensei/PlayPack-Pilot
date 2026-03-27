@@ -39,7 +39,7 @@ export const downloadCompleteZip = async (project: ProjectConfig, signing: Signi
   docs?.file('README.md', generateReadme(project));
   docs?.file('release-checklist.md', generateReleaseChecklist());
   docs?.file('signing-notes.md', generateSigningNotes(signing));
-  docs?.file('release-notes.md', generateReleaseNotes(project));
+  docs?.file('play-store-release-notes.md', generateReleaseNotes(project));
   docs?.file('troubleshooting.md', generateTroubleshooting(project));
   docs?.file('deployment-sop.md', generateDeploymentSop(project, signing));
 

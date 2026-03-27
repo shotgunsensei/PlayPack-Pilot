@@ -92,7 +92,7 @@ export default function FileExport() {
     },
     {
       icon: <FileText className="w-8 h-8 text-purple-400" />,
-      name: 'release-notes.md',
+      name: 'play-store-release-notes.md',
       description: 'Play Store release notes template',
       content: generateReleaseNotes(project),
       type: 'text/markdown',

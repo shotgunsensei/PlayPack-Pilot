@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
+import { StepWizard } from '@/components/StepWizard';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -82,6 +83,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         
         <main className="flex-1 overflow-y-auto p-8 relative z-10">
           <div className="max-w-5xl mx-auto pb-20">
+            <StepWizard />
             {children}
           </div>
         </main>

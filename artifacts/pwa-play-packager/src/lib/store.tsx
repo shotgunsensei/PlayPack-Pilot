@@ -39,6 +39,11 @@ const defaultSigning: SigningConfig = {
   sha256Fingerprint: '',
 };
 
+function stripPasswords(signing: SigningConfig): SigningConfig {
+  const { storePassword, keyPassword, ...safe } = signing;
+  return safe;
+}
+
 const defaultChecklist: ChecklistState = {};
 
 const defaultState: AppState = {
@@ -108,7 +113,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(loadState);
 
   useEffect(() => {
-    localStorage.setItem('pwa_packager_state', JSON.stringify({ ...state, _version: STORAGE_VERSION }));
+    const persistable = {
+      ...state,
+      signing: stripPasswords(state.signing),
+      _version: STORAGE_VERSION,
+    };
+    localStorage.setItem('pwa_packager_state', JSON.stringify(persistable));
   }, [state]);
 
   const updateProject = (updates: Partial<ProjectConfig>) => {

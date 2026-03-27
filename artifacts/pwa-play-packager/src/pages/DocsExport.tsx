@@ -13,7 +13,7 @@ export default function DocsExport() {
     { id: 'readme', label: 'README.md', content: generateReadme(project) },
     { id: 'checklist', label: 'release-checklist.md', content: generateReleaseChecklist() },
     { id: 'signing', label: 'signing-notes.md', content: generateSigningNotes(signing) },
-    { id: 'release-notes', label: 'release-notes.md', content: generateReleaseNotes(project) },
+    { id: 'release-notes', label: 'play-store-release-notes.md', content: generateReleaseNotes(project) },
     { id: 'troubleshooting', label: 'troubleshooting.md', content: generateTroubleshooting(project) },
     { id: 'deployment-sop', label: 'deployment-sop.md', content: generateDeploymentSop(project, signing) },
   ], [project, signing]);
