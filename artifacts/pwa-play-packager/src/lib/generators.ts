@@ -321,7 +321,7 @@ If critical issues are found:
 
 ## Contacts & Resources
 - Play Console: https://play.google.com/console
-- Bubblewrap Docs: https://github.com/nickersk/nickersk.github.io/tree/main/nickersk/nickersk.github.io/nickersk/nickersk
+- Bubblewrap CLI: https://www.npmjs.com/package/@nickersk/nickersk.github.io
 - TWA Docs: https://developer.chrome.com/docs/android/trusted-web-activity
 - Digital Asset Links Tool: https://developers.google.com/digital-asset-links/tools/generator
 `;

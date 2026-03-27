@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Card } from '@/components/ui/card';
 import { CommandBlock } from '@/components/CommandBlock';
+import { DownloadButton } from '@/components/DownloadButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateReadme, generateReleaseChecklist, generateSigningNotes, generateReleaseNotes, generateTroubleshooting, generateDeploymentSop } from '@/lib/generators';
 
@@ -22,7 +23,7 @@ export default function DocsExport() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
         <h1 className="text-3xl font-display font-bold text-foreground">Documentation Preview</h1>
-        <p className="text-muted-foreground mt-1">Review the markdown documents generated for your project repository.</p>
+        <p className="text-muted-foreground mt-1">Review and download the markdown documents generated for your project repository.</p>
       </div>
 
       <Card className="glass-card p-2 md:p-6 bg-card/60">
@@ -37,6 +38,9 @@ export default function DocsExport() {
           
           {docs.map(doc => (
             <TabsContent key={doc.id} value={doc.id}>
+              <div className="flex justify-end mb-3">
+                <DownloadButton filename={doc.label} content={doc.content} contentType="text/markdown" label={`Download ${doc.label}`} variant="outline" size="sm" />
+              </div>
               <CommandBlock command={doc.content} language="markdown" label={doc.label} />
             </TabsContent>
           ))}
