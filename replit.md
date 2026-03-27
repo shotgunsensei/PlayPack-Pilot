@@ -110,21 +110,36 @@ SaaS-style React + Vite + TypeScript app for packaging PWAs for Google Play Stor
 - `/pricing` — Free vs Pro plan comparison
 - `/projects` — Multi-project dashboard (search, filter, CRUD)
 - `/settings` — Profile, plan, command/export/theme preferences
+- `/intake` — Project creation mode selector (Analyze Website, Upload Repo ZIP, Manual, Example)
+- `/analyze/site` — Website scanner: enters URL, fetches via API proxy, parses HTML/manifest/icons/SW, shows readiness report
+- `/analyze/repo` — Repo ZIP analyzer (Pro only): uploads ZIP, client-side extraction with JSZip, detects framework/manifest/icons
+- `/analyze/review` — Review & Apply: table of detected values with confidence, source, approve/edit/reject controls. Creates project with approved values.
 - `/` — Project dashboard (readiness scoring) — requires active project
 - `/setup` through `/export` — 9-step wizard (Project Setup, PWA Validation, Signing Planner, Asset Links, Bubblewrap Build, GitHub Actions, Release Checklist, Docs Export, File Export)
 
-**Routing:** Full-page routes (`/landing`, `/auth`, `/pricing`) render without sidebar. App routes render inside `SidebarLayout`.
+**Routing:** Full-page routes (`/landing`, `/auth`, `/pricing`) render without sidebar. App routes render inside `SidebarLayout`. `/analyze/repo` gated behind `RequirePro` guard.
+
+**Analysis architecture:**
+- Backend proxy: `api-server/src/routes/proxy.ts` — POST `/api/proxy-scan` fetches website HTML, parses with cheerio, extracts manifest link/meta tags/icons/SW hints, fetches manifest.json, returns structured ScanResult. SSRF protection: DNS resolution validation, private IP blocking, redirect-by-redirect validation (manual redirect handling).
+- Frontend services: `src/services/siteAnalysisService.ts` (calls proxy, builds analysis), `src/services/repoAnalysisService.ts` (ZIP extraction with JSZip, framework detection, file categorization)
+- Types: `src/lib/analysis-types.ts` — DetectedValue (field/value/confidence/status/source), AnalysisResult, ScanResult, RepoAnalysisResult, ReadinessItem, IconCandidate
+- Confidence model: High (directly parsed from manifest), Medium (inferred from meta tags/package.json), Low (guessed from domain/truncated values)
+- Detection statuses: Detected, Inferred, Missing
+- Vite dev proxy: `/api` → `http://localhost:8080` (API server)
 
 **Key files:**
 - `src/lib/store.tsx` — AppProvider context with all state, auth, project CRUD
 - `src/lib/types.ts` — ProjectConfig, SigningConfig, SavedProject, UserProfile, PlanTier, ValidationResult
+- `src/lib/analysis-types.ts` — Analysis result types, confidence levels, detection statuses
 - `src/lib/presets.ts` — Starter template definitions
 - `src/lib/validators.ts` — Readiness scoring and validation utilities
 - `src/lib/generators.ts` — File content generators (manifest, assetlinks, workflows, docs)
 - `src/lib/export-helpers.ts` — File download and ZIP generation
+- `src/services/siteAnalysisService.ts` — Website scan + analysis builder
+- `src/services/repoAnalysisService.ts` — ZIP/repo analysis + result builder
 - `src/components/PlanGate.tsx` — Pro feature gating component
 
-Key dependencies: wouter (routing), framer-motion, lucide-react, jszip, shadcn/ui components.
+Key dependencies: wouter (routing), framer-motion, lucide-react, jszip, shadcn/ui components, cheerio (api-server).
 
 ### `scripts` (`@workspace/scripts`)
 

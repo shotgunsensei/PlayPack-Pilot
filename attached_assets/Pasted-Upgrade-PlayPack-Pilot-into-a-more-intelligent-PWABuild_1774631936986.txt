@@ -1,0 +1,322 @@
+Upgrade PlayPack Pilot into a more intelligent PWABuilder-style packaging assistant by adding automated intake and analysis workflows.
+
+Core mission:
+The app should allow a user to either:
+1. enter a website URL for analysis
+2. upload a repository ZIP or selected project files for analysis
+3. manually enter app details
+
+Then the app should analyze what it can, infer useful metadata, auto-populate the project configuration, identify missing requirements, and generate the packaging outputs and documentation.
+
+Important product truth boundary:
+Do not falsely claim that the app fully builds, signs, or publishes a production Android app unless that functionality is truly implemented.
+The app should truthfully present itself as:
+- an analyzer
+- a metadata extractor
+- a packaging prep assistant
+- a deployment package generator
+
+Main UX goal:
+Make the app feel intuitive enough that a user can:
+- paste a site URL or upload project files
+- click Analyze
+- review extracted data
+- approve or edit the findings
+- generate a deployment package
+with minimal manual effort.
+
+Required new modes:
+- Website Scan Mode
+- Repo Upload Mode
+- Manual Setup Mode
+
+Top-level app experience:
+Create a new onboarding flow where the user chooses:
+- Analyze Website
+- Upload Project / Repo ZIP
+- Start Manually
+- Load Example Project
+
+Then guide them into a structured “Review & Generate” workflow.
+
+New features to implement:
+
+1. Website Scan Engine
+Add a mode where the user enters a live URL and the app attempts to analyze the site.
+
+The analysis should:
+- normalize the URL
+- fetch the HTML if CORS/proxy architecture supports it
+- inspect for:
+  - manifest link tag
+  - theme-color meta tag
+  - title tag
+  - apple-touch-icon links
+  - icon links
+  - service worker registration clues if detectable
+  - common PWA indicators
+- attempt to fetch manifest.json if linked
+- parse manifest fields if found:
+  - name
+  - short_name
+  - start_url
+  - scope
+  - display
+  - theme_color
+  - background_color
+  - icons
+  - orientation
+- infer domain, base URL, manifest URL, icon URL candidates
+- estimate whether the app appears installable
+- generate a confidence score for extracted values
+- present all extracted values in a review UI before applying them
+
+Very important:
+- Do not fabricate successful scans
+- If direct browser fetch is blocked by CORS, handle that gracefully
+- Prefer a simple backend proxy endpoint if needed and supported in Replit
+- Clearly label detected vs inferred vs missing data
+
+2. Repo Upload / ZIP Analysis
+Add a mode where the user uploads:
+- a ZIP of a web app repo
+or
+- individual files
+
+The system should analyze the uploaded content for likely PWA-related assets.
+
+Detect common files such as:
+- manifest.json
+- package.json
+- vite.config.*
+- next.config.*
+- public/manifest.json
+- src/service-worker.*
+- sw.js
+- public/sw.js
+- icons in public/assets/icons folders
+- README files that mention app name or URLs
+
+The analysis should:
+- extract files client-side if feasible using a ZIP library
+- create an index of discovered files
+- detect probable framework
+- detect probable web root/public directory
+- parse manifest if found
+- parse package.json if found
+- infer app name, short name, base path, icon paths
+- flag whether service worker-related files exist
+- flag whether required Android packaging fields are missing
+- produce a “discovered project summary”
+
+Make the uploaded-file workflow feel fast and visual:
+- show discovered files
+- show detected framework
+- show extracted metadata
+- show confidence levels
+- show missing pieces
+
+3. Review & Apply Layer
+Do not silently overwrite project values.
+Create an intermediate review step where the user sees:
+- field name
+- detected value
+- confidence
+- source
+- keep/edit/apply controls
+
+For example:
+- App Name → detected from manifest.json
+- Theme Color → detected from meta theme-color
+- Package ID → missing, needs manual entry
+- Start URL → inferred from manifest or root URL
+
+Add:
+- Apply All High Confidence
+- Apply Selected
+- Reset Imported Values
+
+4. Detection confidence model
+For extracted values, classify each as:
+- Detected
+- Inferred
+- Missing
+
+Also include confidence levels:
+- High
+- Medium
+- Low
+
+Examples:
+- High: directly parsed from manifest.json
+- Medium: inferred from title tag or package.json
+- Low: guessed from domain slug
+
+5. PWA installability readiness analysis
+Add a more advanced readiness section that evaluates:
+- manifest presence
+- manifest completeness
+- icon availability
+- HTTPS
+- service worker evidence
+- display mode suitability
+- theme/background color presence
+- start URL validity
+
+This should NOT claim Chrome-level installability testing unless implemented.
+Instead say:
+- “Likely ready”
+- “Needs review”
+- “Missing critical elements”
+
+6. Smart field auto-population
+Once analysis is complete, auto-fill the project setup form with approved values.
+Allow user edits afterward.
+Maintain provenance metadata internally so users can see where each value came from.
+
+7. Packaging package generator
+Strengthen the export package to feel closer to PWABuilder-style output, but truthfully.
+
+Generate:
+- project-config.json
+- manifest.json template or normalized manifest
+- assetlinks.json
+- README.md
+- deployment-sop.md
+- release-checklist.md
+- GitHub Actions workflow
+- Bubblewrap command guide
+- bash script template
+- PowerShell script template
+- Android packaging notes
+- missing-items report
+
+If feasible, package these into a downloadable ZIP.
+
+8. Backend/proxy architecture
+If needed, implement a lightweight backend in Replit for website fetching and analysis.
+Requirements:
+- safe URL validation
+- fetch timeout handling
+- domain normalization
+- no dangerous arbitrary file execution
+- no shell execution from uploaded repos
+- file parsing only
+- HTML parsing only
+- JSON parsing only
+- clear error messages for unsupported sites or fetch failures
+
+Do not create an unsafe backend that executes untrusted code from uploaded repositories.
+Uploaded repos must be treated as files to inspect, not code to run.
+
+9. New UI/UX requirements
+Add a polished intake page with cards for:
+- Analyze Website
+- Upload Repo ZIP
+- Manual Entry
+- Example Project
+
+Add an analysis progress experience with:
+- scanning steps
+- detected assets
+- findings summary
+- warnings/errors
+- clear next action
+
+Add visual sections such as:
+- Site/Repo Overview
+- Detected Metadata
+- Missing Requirements
+- PWA Readiness
+- Android Packaging Readiness
+- Recommended Next Steps
+
+10. Repo analysis features
+For uploaded projects, detect or infer:
+- project/framework type
+- likely site URL if mentioned in package.json/homepage or README
+- public path
+- icon files
+- manifest references
+- service worker files
+- probable app title
+- probable short name
+
+Create a file explorer panel for discovered relevant files.
+
+11. Better architecture
+Refactor the codebase to support analysis pipelines.
+
+Suggested architecture additions:
+- src/features/intake/
+- src/features/site-analysis/
+- src/features/repo-analysis/
+- src/features/review-apply/
+- src/services/analysisService.ts
+- src/services/repoAnalysisService.ts
+- src/services/siteAnalysisService.ts
+- src/services/proxyFetchService.ts
+- src/utils/manifestParser.ts
+- src/utils/htmlMetadataParser.ts
+- src/utils/zipAnalyzer.ts
+- src/types/analysis.ts
+
+12. Security requirements
+- Never execute uploaded code
+- Never run scripts from user repo uploads
+- Never expose secrets
+- Validate URLs before proxy fetch
+- Reject localhost/private network targets if implementing backend fetch
+- Sanitize file names and metadata display
+- Limit ZIP size and supported file count
+- Fail safely and transparently
+
+13. Monetization/product requirements
+Make these advanced intake features part of the product strategy.
+
+Free tier:
+- manual mode
+- website scan for 1 project
+- basic generated outputs
+
+Pro tier:
+- unlimited scans
+- repo ZIP analysis
+- advanced readiness reports
+- premium export bundles
+- saved imported profiles
+- reusable analysis snapshots
+
+Reflect this cleanly in the UI with tasteful upgrade prompts and plan-aware gating.
+
+14. Output quality requirements
+Every analysis result should be useful and actionable.
+For each missing or weak area, generate practical guidance.
+Examples:
+- “No manifest link was detected in the page HTML”
+- “Manifest found, but short_name is missing”
+- “Service worker file appears present in repo, but registration was not confirmed”
+- “Package ID cannot be inferred reliably and must be entered manually”
+
+15. Final quality requirements
+The app should feel:
+- intuitive
+- fast
+- credible
+- premium
+- truthful
+- commercially viable
+
+No broken flows.
+No fake AI claims.
+No dead buttons.
+No unfinished screens.
+
+After implementation, perform a full polish pass to improve:
+- flow clarity
+- detection result presentation
+- review/apply UX
+- upgrade prompt quality
+- error handling
+- responsiveness
+- overall trust and usability

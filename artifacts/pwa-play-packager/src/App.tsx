@@ -21,6 +21,10 @@ import GithubActions from "@/pages/GithubActions";
 import ReleaseChecklist from "@/pages/ReleaseChecklist";
 import DocsExport from "@/pages/DocsExport";
 import FileExport from "@/pages/FileExport";
+import Intake from "@/pages/Intake";
+import SiteAnalysis from "@/pages/SiteAnalysis";
+import RepoAnalysis from "@/pages/RepoAnalysis";
+import ReviewApply from "@/pages/ReviewApply";
 
 const queryClient = new QueryClient();
 
@@ -49,12 +53,43 @@ function RequireProject({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RequirePro({ children }: { children: React.ReactNode }) {
+  const { isProUser } = useAppStore();
+  const [, setLocation] = useLocation();
+
+  if (!isProUser) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mb-6">
+          <svg className="w-10 h-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2">Pro Feature</h2>
+        <p className="text-sm text-muted-foreground mb-6 max-w-sm">Repository ZIP analysis is available on the Pro plan. Upgrade to unlock this feature.</p>
+        <button
+          onClick={() => setLocation('/pricing')}
+          className="px-6 py-2.5 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-medium text-sm"
+        >
+          View Plans
+        </button>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function AppRouter() {
   return (
     <SidebarLayout>
       <Switch>
         <Route path="/projects" component={Projects} />
         <Route path="/settings" component={Settings} />
+        <Route path="/intake" component={Intake} />
+        <Route path="/analyze/site" component={SiteAnalysis} />
+        <Route path="/analyze/repo">
+          <RequirePro><RepoAnalysis /></RequirePro>
+        </Route>
+        <Route path="/analyze/review" component={ReviewApply} />
         <Route path="/">
           <RequireProject><Dashboard /></RequireProject>
         </Route>

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { 
   LayoutDashboard, Settings as SettingsIcon, ShieldCheck, Key, Link as LinkIcon, 
   TerminalSquare, Github, ListChecks, FileText, Download, 
-  Rocket, FolderOpen, Crown, User, LogOut, CreditCard
+  Rocket, FolderOpen, Crown, User, LogOut, CreditCard, Sparkles
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -41,10 +41,15 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 space-y-1">
           <Link href="/projects">
             <div className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${location === '/projects' ? 'bg-primary/10 text-primary border border-primary/20' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent'}`}>
               <FolderOpen className="w-5 h-5 opacity-70" /> All Projects
+            </div>
+          </Link>
+          <Link href="/intake">
+            <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${location.startsWith('/intake') || location.startsWith('/analyze') ? 'bg-primary/10 text-primary border border-primary/20' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent'}`}>
+              <Sparkles className="w-5 h-5 opacity-70" /> New Project
             </div>
           </Link>
         </div>
