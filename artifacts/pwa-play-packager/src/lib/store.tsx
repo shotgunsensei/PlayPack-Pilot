@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ProjectConfig, SigningConfig, ChecklistState, SavedProject, UserProfile, UserPreferences, PlanTier } from './types';
+import { PROJECT_PRESETS } from './presets';
 
 const defaultProject: ProjectConfig = {
   appName: '',
@@ -42,10 +43,11 @@ function generateId(): string {
 
 function createEmptyProject(name: string, preset?: string): SavedProject {
   const now = new Date().toISOString();
+  const presetData = preset ? PROJECT_PRESETS.find(p => p.id === preset) : null;
   return {
     id: generateId(),
     name,
-    project: { ...defaultProject, appName: name },
+    project: { ...defaultProject, appName: name, ...(presetData?.project || {}) },
     signing: { ...defaultSigning },
     checklist: {},
     preset,
@@ -208,32 +210,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createProject = useCallback((name: string, preset?: string): string => {
     const newProject = createEmptyProject(name, preset);
-    setState(prev => ({
-      ...prev,
-      projects: [...prev.projects, newProject],
-      activeProjectId: newProject.id,
-    }));
+    setState(prev => {
+      const currentPlan = prev.user?.plan || 'free';
+      const activeCount = prev.projects.filter(p => !p.archived).length;
+      if (currentPlan !== 'pro' && activeCount >= 1) return prev;
+      return {
+        ...prev,
+        projects: [...prev.projects, newProject],
+        activeProjectId: newProject.id,
+      };
+    });
     return newProject.id;
   }, []);
 
   const duplicateProject = useCallback((id: string): string | null => {
-    const original = state.projects.find(p => p.id === id);
-    if (!original) return null;
-    const dup: SavedProject = {
-      ...original,
-      id: generateId(),
-      name: `${original.name} (Copy)`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      archived: false,
-    };
-    setState(prev => ({
-      ...prev,
-      projects: [...prev.projects, dup],
-      activeProjectId: dup.id,
-    }));
-    return dup.id;
-  }, [state.projects]);
+    let newId: string | null = null;
+    setState(prev => {
+      const original = prev.projects.find(p => p.id === id);
+      if (!original) return prev;
+      const currentPlan = prev.user?.plan || 'free';
+      const activeCount = prev.projects.filter(p => !p.archived).length;
+      if (currentPlan !== 'pro' && activeCount >= 1) return prev;
+      const dup: SavedProject = {
+        ...original,
+        id: generateId(),
+        name: `${original.name} (Copy)`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        archived: false,
+      };
+      newId = dup.id;
+      return {
+        ...prev,
+        projects: [...prev.projects, dup],
+        activeProjectId: dup.id,
+      };
+    });
+    return newId;
+  }, []);
 
   const deleteProject = useCallback((id: string) => {
     setState(prev => ({
@@ -283,12 +297,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       imported.project = { ...defaultProject, ...(parsed.project || {}) };
       imported.signing = { ...defaultSigning, ...(parsed.signing || {}) };
       imported.checklist = parsed.checklist || {};
-      setState(prev => ({
-        ...prev,
-        projects: [...prev.projects, imported],
-        activeProjectId: imported.id,
-      }));
-      return true;
+      let success = false;
+      setState(prev => {
+        const currentPlan = prev.user?.plan || 'free';
+        const activeCount = prev.projects.filter(p => !p.archived).length;
+        if (currentPlan !== 'pro' && activeCount >= 1) return prev;
+        success = true;
+        return {
+          ...prev,
+          projects: [...prev.projects, imported],
+          activeProjectId: imported.id,
+        };
+      });
+      return success;
     } catch {
       return false;
     }

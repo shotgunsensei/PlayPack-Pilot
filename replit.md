@@ -92,9 +92,39 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
-### `artifacts/pwa-play-packager` (`@workspace/pwa-play-packager`)
+### `artifacts/pwa-play-packager` (`@workspace/pwa-play-packager`) — "PlayPack Pilot"
 
-Frontend-only React + Vite + TypeScript SaaS app for packaging PWAs for Google Play Store deployment via Bubblewrap/TWA. Dark-mode UI with 10 pages: Dashboard (readiness scoring), Project Setup, PWA Validation, Signing Planner, Digital Asset Links, Bubblewrap Build (Bash/PowerShell), GitHub Actions, Play Release Checklist, Docs Export (6 markdown docs), File Export Center (10 individual files + ZIP). State is persisted to localStorage via React context. Key dependencies: wouter (routing), framer-motion, lucide-react, jszip, shadcn/ui components.
+SaaS-style React + Vite + TypeScript app for packaging PWAs for Google Play Store via Bubblewrap/TWA. Dark-mode UI, fully frontend-only with localStorage persistence.
+
+**Architecture:**
+- **Auth:** Local demo auth system (sign up/in/out, guest mode). Data stored in localStorage. Structured for future Supabase migration.
+- **Multi-project:** CRUD, duplicate, archive, import/export JSON. Free tier limited to 1 project; Pro tier unlimited.
+- **Plan gating:** `PlanGate` component blocks Pro features for free users with upgrade prompts. `UpgradePrompt` inline component.
+- **Presets:** 4 starter templates (Generic App, SaaS Tool, Content App, Utility App) that prefill project defaults.
+- **Store:** `playpack_pilot_state` localStorage key, STORAGE_VERSION=2. Migrates from old v1 `pwa_packager_state`.
+- **Passwords:** Never persisted to localStorage or included in exports.
+
+**Pages:**
+- `/landing` — Marketing landing page (hero, features, FAQ, CTA)
+- `/auth` — Sign in/up with demo mode and guest access
+- `/pricing` — Free vs Pro plan comparison
+- `/projects` — Multi-project dashboard (search, filter, CRUD)
+- `/settings` — Profile, plan, command/export/theme preferences
+- `/` — Project dashboard (readiness scoring) — requires active project
+- `/setup` through `/export` — 9-step wizard (Project Setup, PWA Validation, Signing Planner, Asset Links, Bubblewrap Build, GitHub Actions, Release Checklist, Docs Export, File Export)
+
+**Routing:** Full-page routes (`/landing`, `/auth`, `/pricing`) render without sidebar. App routes render inside `SidebarLayout`.
+
+**Key files:**
+- `src/lib/store.tsx` — AppProvider context with all state, auth, project CRUD
+- `src/lib/types.ts` — ProjectConfig, SigningConfig, SavedProject, UserProfile, PlanTier, ValidationResult
+- `src/lib/presets.ts` — Starter template definitions
+- `src/lib/validators.ts` — Readiness scoring and validation utilities
+- `src/lib/generators.ts` — File content generators (manifest, assetlinks, workflows, docs)
+- `src/lib/export-helpers.ts` — File download and ZIP generation
+- `src/components/PlanGate.tsx` — Pro feature gating component
+
+Key dependencies: wouter (routing), framer-motion, lucide-react, jszip, shadcn/ui components.
 
 ### `scripts` (`@workspace/scripts`)
 

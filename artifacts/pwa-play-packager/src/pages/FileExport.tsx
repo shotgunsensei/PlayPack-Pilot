@@ -3,14 +3,16 @@ import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileJson, FileCode, FileText, Package, FileType } from 'lucide-react';
+import { Download, FileJson, FileCode, FileText, Package, FileType, Lock } from 'lucide-react';
 import { downloadFile, downloadCompleteZip } from '@/lib/export-helpers';
 import { generateAssetLinks, generateGithubWorkflow, generateReadme, generateSigningNotes, generateManifest, generateReleaseNotes, generateTroubleshooting, generateDeploymentSop, generateReleaseChecklist } from '@/lib/generators';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 export default function FileExport() {
-  const { project, signing } = useAppStore();
+  const { project, signing, isProUser } = useAppStore();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isZipping, setIsZipping] = useState(false);
 
   const handleDownloadFile = (filename: string, content: string, type: string) => {
@@ -149,22 +151,37 @@ export default function FileExport() {
             <p className="text-sm text-muted-foreground mb-8">
               Download all generated configs, GitHub Actions, asset links, and documentation in one organized ZIP file.
             </p>
-            <Button 
-              size="lg" 
-              className="w-full text-md h-14 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity border-0 shadow-lg"
-              onClick={handleZipExport}
-              disabled={isZipping}
-              data-testid="button-download-zip"
-            >
-              {isZipping ? (
-                "Generating ZIP..."
-              ) : (
-                <>
-                  <Download className="w-5 h-5 mr-2" />
-                  Download ZIP
-                </>
-              )}
-            </Button>
+            {isProUser ? (
+              <Button 
+                size="lg" 
+                className="w-full text-md h-14 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity border-0 shadow-lg"
+                onClick={handleZipExport}
+                disabled={isZipping}
+                data-testid="button-download-zip"
+              >
+                {isZipping ? (
+                  "Generating ZIP..."
+                ) : (
+                  <>
+                    <Download className="w-5 h-5 mr-2" />
+                    Download ZIP
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <Button 
+                  size="lg" 
+                  className="w-full text-md h-14"
+                  variant="outline"
+                  onClick={() => setLocation('/pricing')}
+                >
+                  <Lock className="w-5 h-5 mr-2" />
+                  Upgrade to Download ZIP
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">ZIP export is a Pro feature. You can still download individual files above.</p>
+              </div>
+            )}
           </Card>
         </div>
       </div>

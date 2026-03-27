@@ -28,7 +28,8 @@ export function StepWizard() {
     return 'upcoming';
   };
 
-  if (location === '/') return null;
+  if (location === '/' || location === '/projects' || location === '/settings') return null;
+  if (currentStepIndex === -1) return null;
 
   return (
     <div className="mb-6 pb-6 border-b border-border/50">
