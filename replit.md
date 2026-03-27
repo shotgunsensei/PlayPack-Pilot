@@ -97,7 +97,8 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 SaaS-style React + Vite + TypeScript app for packaging PWAs for Google Play Store via Bubblewrap/TWA. Dark-mode UI, fully frontend-only with localStorage persistence.
 
 **Architecture:**
-- **Auth:** Local demo auth system (sign up/in/out, guest mode). Data stored in localStorage. Structured for future Supabase migration.
+- **Auth:** Local demo auth system (sign up/in/out, guest mode, admin login). Data stored in localStorage. Structured for future Supabase migration.
+- **Admin:** Hardcoded admin account (username: `johntwms355`). Admin gets auto-Pro, `role: 'admin'` on UserProfile. Admin dashboard at `/admin` with project management (delete/archive/unarchive any project), plan toggling (free/pro), and data clearing. Admin link only visible in sidebar when signed in as admin. Non-admin users see "Access Denied" on `/admin`.
 - **Multi-project:** CRUD, duplicate, archive, import/export JSON. Free tier limited to 1 project; Pro tier unlimited.
 - **Plan gating:** `PlanGate` component blocks Pro features for free users with upgrade prompts. `UpgradePrompt` inline component.
 - **Presets:** 4 starter templates (Generic App, SaaS Tool, Content App, Utility App) that prefill project defaults.
@@ -129,7 +130,8 @@ SaaS-style React + Vite + TypeScript app for packaging PWAs for Google Play Stor
 
 **Key files:**
 - `src/lib/store.tsx` — AppProvider context with all state, auth, project CRUD
-- `src/lib/types.ts` — ProjectConfig, SigningConfig, SavedProject, UserProfile, PlanTier, ValidationResult
+- `src/lib/types.ts` — ProjectConfig, SigningConfig, SavedProject, UserProfile, PlanTier, UserRole, ValidationResult
+- `src/pages/AdminDashboard.tsx` — Admin-only project/plan/data management page
 - `src/lib/analysis-types.ts` — Analysis result types, confidence levels, detection statuses
 - `src/lib/presets.ts` — Starter template definitions
 - `src/lib/validators.ts` — Readiness scoring and validation utilities

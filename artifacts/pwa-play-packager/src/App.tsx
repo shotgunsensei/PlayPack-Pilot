@@ -25,6 +25,7 @@ import Intake from "@/pages/Intake";
 import SiteAnalysis from "@/pages/SiteAnalysis";
 import RepoAnalysis from "@/pages/RepoAnalysis";
 import ReviewApply from "@/pages/ReviewApply";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,7 @@ function AppRouter() {
           <RequirePro><RepoAnalysis /></RequirePro>
         </Route>
         <Route path="/analyze/review" component={ReviewApply} />
+        <Route path="/admin" component={AdminDashboard} />
         <Route path="/">
           <RequireProject><Dashboard /></RequireProject>
         </Route>

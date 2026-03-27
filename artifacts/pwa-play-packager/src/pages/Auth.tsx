@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
   const [, setLocation] = useLocation();
-  const { signIn, signUp, user } = useAppStore();
+  const { signIn, signUp, adminSignIn, user } = useAppStore();
   const { toast } = useToast();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -20,7 +20,13 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (user) setLocation('/projects');
+    if (user) {
+      if (user.role === 'admin') {
+        setLocation('/admin');
+      } else {
+        setLocation('/projects');
+      }
+    }
   }, [user, setLocation]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,6 +35,13 @@ export default function Auth() {
       toast({ variant: 'destructive', title: 'Email required' });
       return;
     }
+
+    if (mode === 'signin' && adminSignIn(email, password)) {
+      toast({ title: 'Admin signed in', description: 'Welcome, administrator.' });
+      setLocation('/admin');
+      return;
+    }
+
     if (mode === 'signup') {
       if (!name) {
         toast({ variant: 'destructive', title: 'Name required' });

@@ -36,11 +36,14 @@ export interface ScoreBreakdown {
 
 export type PlanTier = 'free' | 'pro';
 
+export type UserRole = 'user' | 'admin';
+
 export interface UserProfile {
   id: string;
   email: string;
   displayName: string;
   plan: PlanTier;
+  role: UserRole;
   createdAt: string;
 }
 

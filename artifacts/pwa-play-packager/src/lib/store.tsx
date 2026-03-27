@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { ProjectConfig, SigningConfig, ChecklistState, SavedProject, UserProfile, UserPreferences, PlanTier } from './types';
+import { ProjectConfig, SigningConfig, ChecklistState, SavedProject, UserProfile, UserPreferences, PlanTier, UserRole } from './types';
 import { PROJECT_PRESETS } from './presets';
+
+const ADMIN_USERNAME = 'johntwms355';
+const ADMIN_PASSWORD = 'L1whwUam0p!';
+const ADMIN_DISPLAY_NAME = 'Admin';
 
 const defaultProject: ProjectConfig = {
   appName: '',
@@ -102,6 +106,7 @@ interface AppContextType extends AppState {
   activeProject: SavedProject | null;
   plan: PlanTier;
   isProUser: boolean;
+  isAdmin: boolean;
   canCreateProject: boolean;
   updateProject: (updates: Partial<ProjectConfig>) => void;
   updateSigning: (updates: Partial<SigningConfig>) => void;
@@ -117,9 +122,13 @@ interface AppContextType extends AppState {
   importProject: (data: string) => boolean;
   exportProject: (id: string) => string;
   signIn: (email: string, name: string) => void;
+  adminSignIn: (username: string, password: string) => boolean;
   signOut: () => void;
   signUp: (email: string, name: string) => void;
   upgradePlan: () => void;
+  downgradePlan: () => void;
+  adminSetPlan: (plan: PlanTier) => void;
+  adminClearAllData: () => void;
 }
 
 const STORAGE_KEY = 'playpack_pilot_state';
@@ -144,8 +153,9 @@ function loadPersistedState(): AppState {
       }
       return { user: null, projects: [], activeProjectId: null, preferences: defaultPreferences };
     }
+    const rawUser = parsed.user;
     return {
-      user: parsed.user || null,
+      user: rawUser ? { ...rawUser, role: rawUser.role || 'user' } : null,
       projects: (parsed.projects || []).map((p: SavedProject) => ({
         ...p,
         project: { ...defaultProject, ...(p.project || {}) },
@@ -180,6 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const activeProject = state.projects.find(p => p.id === state.activeProjectId) || null;
   const plan = state.user?.plan || 'free';
   const isProUser = plan === 'pro';
+  const isAdmin = state.user?.role === 'admin';
   const nonArchivedCount = state.projects.filter(p => !p.archived).length;
   const canCreateProject = isProUser || nonArchivedCount < 1;
 
@@ -334,10 +345,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: generateId(),
         email,
         displayName: name,
-        plan: 'free',
+        plan: prev.user?.plan || 'free',
+        role: 'user' as UserRole,
         createdAt: new Date().toISOString(),
       },
     }));
+  }, []);
+
+  const adminSignIn = useCallback((username: string, password: string): boolean => {
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      setState(prev => ({
+        ...prev,
+        user: {
+          id: 'admin-' + generateId(),
+          email: username,
+          displayName: ADMIN_DISPLAY_NAME,
+          plan: 'pro' as PlanTier,
+          role: 'admin' as UserRole,
+          createdAt: new Date().toISOString(),
+        },
+      }));
+      return true;
+    }
+    return false;
   }, []);
 
   const signUp = useCallback((email: string, name: string) => {
@@ -355,6 +385,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } : prev);
   }, []);
 
+  const downgradePlan = useCallback(() => {
+    setState(prev => prev.user ? {
+      ...prev,
+      user: { ...prev.user, plan: 'free' as PlanTier },
+    } : prev);
+  }, []);
+
+  const adminSetPlan = useCallback((newPlan: PlanTier) => {
+    setState(prev => {
+      if (!prev.user || prev.user.role !== 'admin') return prev;
+      return { ...prev, user: { ...prev.user, plan: newPlan } };
+    });
+  }, []);
+
+  const adminClearAllData = useCallback(() => {
+    setState(prev => {
+      if (!prev.user || prev.user.role !== 'admin') return prev;
+      return { ...prev, projects: [], activeProjectId: null };
+    });
+  }, []);
+
   return (
     <AppContext.Provider value={{
       ...state,
@@ -364,6 +415,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activeProject,
       plan,
       isProUser,
+      isAdmin,
       canCreateProject,
       updateProject,
       updateSigning,
@@ -379,9 +431,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       importProject,
       exportProject,
       signIn,
+      adminSignIn,
       signOut,
       signUp,
       upgradePlan,
+      downgradePlan,
+      adminSetPlan,
+      adminClearAllData,
     }}>
       {children}
     </AppContext.Provider>

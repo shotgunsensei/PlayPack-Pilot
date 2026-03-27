@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { 
   LayoutDashboard, Settings as SettingsIcon, ShieldCheck, Key, Link as LinkIcon, 
   TerminalSquare, Github, ListChecks, FileText, Download, 
-  Rocket, FolderOpen, Crown, User, LogOut, CreditCard, Sparkles
+  Rocket, FolderOpen, Crown, User, LogOut, CreditCard, Sparkles, Shield
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ const navItems = [
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { activeProject, user, isProUser, signOut } = useAppStore();
+  const { activeProject, user, isProUser, isAdmin, signOut } = useAppStore();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/30 selection:text-primary-foreground">
@@ -96,6 +96,13 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               {isProUser ? 'Pro Plan' : 'Upgrade'}
             </div>
           </Link>
+          {isAdmin && (
+            <Link href="/admin">
+              <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm cursor-pointer transition-colors ${location === '/admin' ? 'bg-red-500/10 text-red-400' : 'text-red-400/70 hover:bg-red-500/5 hover:text-red-400'}`}>
+                <Shield className="w-4 h-4" /> Admin
+              </div>
+            </Link>
+          )}
           {user ? (
             <div className="flex items-center gap-3 px-4 py-2.5 text-xs text-muted-foreground">
               <User className="w-3.5 h-3.5 opacity-70" />
