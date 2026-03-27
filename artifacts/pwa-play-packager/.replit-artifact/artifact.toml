@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "PWA Play Packager"
+version = "1.0.0"
+id = "artifacts/pwa-play-packager"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19333
+
+[services.development]
+run = "pnpm --filter @workspace/pwa-play-packager run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pwa-play-packager", "run", "build" ]
+publicDir = "artifacts/pwa-play-packager/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19333"
+BASE_PATH = "/"

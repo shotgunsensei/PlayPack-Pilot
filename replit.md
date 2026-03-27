@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── pwa-play-packager/  # PWA Play Packager (React + Vite + TypeScript, frontend-only)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -90,6 +91,10 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+
+### `artifacts/pwa-play-packager` (`@workspace/pwa-play-packager`)
+
+Frontend-only React + Vite + TypeScript SaaS app for packaging PWAs for Google Play Store deployment via Bubblewrap/TWA. Dark-mode UI with 10 pages: Dashboard (readiness scoring), Project Setup, PWA Validation, Signing Planner, Digital Asset Links, Bubblewrap Build (Bash/PowerShell), GitHub Actions, Play Release Checklist, Docs Export (6 markdown docs), File Export Center (10 individual files + ZIP). State is persisted to localStorage via React context. Key dependencies: wouter (routing), framer-motion, lucide-react, jszip, shadcn/ui components.
 
 ### `scripts` (`@workspace/scripts`)
 

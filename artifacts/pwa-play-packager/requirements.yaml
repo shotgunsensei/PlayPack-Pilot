@@ -1,0 +1,13 @@
+packages:
+  "jszip": "Required for exporting the complete deployment package as a zip file"
+  "framer-motion": "For page transitions, score ring animations, and smooth UI interactions"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+  "lucide-react": "Beautiful consistent icon set"
+
+images: []
+
+notes:
+  - This app is entirely frontend-based using localStorage for persistence.
+  - No backend or database is required.
+  - Dark mode is enforced by default.
