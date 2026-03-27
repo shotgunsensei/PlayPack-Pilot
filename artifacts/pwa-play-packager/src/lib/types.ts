@@ -33,3 +33,50 @@ export interface ScoreBreakdown {
   percentage: number;
   missingItems: string[];
 }
+
+export type PlanTier = 'free' | 'pro';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  plan: PlanTier;
+  createdAt: string;
+}
+
+export interface SavedProject {
+  id: string;
+  name: string;
+  project: ProjectConfig;
+  signing: SigningConfig;
+  checklist: ChecklistState;
+  preset?: string;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserPreferences {
+  shellType: 'bash' | 'powershell';
+  defaultDocsBranding: boolean;
+  theme: 'dark' | 'light';
+}
+
+export type ValidationSeverity = 'error' | 'warning' | 'info';
+
+export interface ValidationResult {
+  id: string;
+  label: string;
+  severity: ValidationSeverity;
+  message: string;
+  passed: boolean;
+  group: string;
+}
+
+export interface PresetTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  project: Partial<ProjectConfig>;
+}
