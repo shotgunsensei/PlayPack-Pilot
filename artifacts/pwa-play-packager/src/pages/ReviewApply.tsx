@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { useAppStore } from '@/lib/store';
@@ -6,18 +6,26 @@ import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import {
-  CheckCircle2, AlertTriangle, XCircle, ArrowRight, RotateCcw, Zap,
-  Check, Edit3, Globe, Upload
+  CheckCircle2, AlertTriangle, XCircle, ArrowRight, ArrowLeft, RotateCcw, Zap,
+  Edit3, Globe, Upload, Sparkles, Shield
 } from 'lucide-react';
 import type { AnalysisResult, DetectedValue, ConfidenceLevel } from '@/lib/analysis-types';
 
 const confidenceBadge = (level: ConfidenceLevel) => {
   switch (level) {
-    case 'high': return <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">High</span>;
-    case 'medium': return <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">Medium</span>;
-    case 'low': return <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">Low</span>;
+    case 'high': return <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">High</span>;
+    case 'medium': return <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">Medium</span>;
+    case 'low': return <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-medium">Low</span>;
+  }
+};
+
+const statusLabel = (status: DetectedValue['status']) => {
+  switch (status) {
+    case 'detected': return <span className="text-[11px] text-green-400 font-medium">Detected</span>;
+    case 'inferred': return <span className="text-[11px] text-amber-400 font-medium">Inferred</span>;
+    case 'missing': return <span className="text-[11px] text-red-400 font-medium">Missing</span>;
   }
 };
 
@@ -28,6 +36,51 @@ const statusIcon = (status: DetectedValue['status']) => {
     case 'missing': return <XCircle className="w-4 h-4 text-red-400" />;
   }
 };
+
+function ValueRow({ v, editing, onToggle, onEdit, onStartEdit, onStopEdit }: {
+  v: DetectedValue;
+  editing: boolean;
+  onToggle: (approved: boolean) => void;
+  onEdit: (value: string) => void;
+  onStartEdit: () => void;
+  onStopEdit: () => void;
+}) {
+  return (
+    <div className={`flex items-start gap-4 py-3.5 px-4 rounded-xl transition-all ${v.approved ? 'bg-muted/10' : 'opacity-50'}`}>
+      <div className="pt-0.5">
+        <Switch checked={v.approved} onCheckedChange={onToggle} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          {statusIcon(v.status)}
+          <span className="text-sm font-medium text-foreground">{v.label}</span>
+          {confidenceBadge(v.confidence)}
+          {statusLabel(v.status)}
+        </div>
+        {editing ? (
+          <Input
+            autoFocus
+            value={v.value}
+            onChange={e => onEdit(e.target.value)}
+            onBlur={onStopEdit}
+            onKeyDown={e => e.key === 'Enter' && onStopEdit()}
+            className="h-8 text-sm font-mono mt-1"
+          />
+        ) : (
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="font-mono text-xs text-foreground/80 break-all">
+              {v.value || <span className="text-red-400/60 italic">needs manual entry</span>}
+            </span>
+            <button onClick={onStartEdit} className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0">
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+        <div className="text-[11px] text-muted-foreground/50 mt-1">{v.sourceDetail || v.source}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function ReviewApply() {
   const [, setLocation] = useLocation();
@@ -57,11 +110,7 @@ export default function ReviewApply() {
   };
 
   const approveAllHighConfidence = () => {
-    setValues(prev => prev.map(v => v.confidence === 'high' ? { ...v, approved: true } : v));
-  };
-
-  const approveAll = () => {
-    setValues(prev => prev.map(v => ({ ...v, approved: true })));
+    setValues(prev => prev.map(v => v.confidence === 'high' || v.confidence === 'medium' ? { ...v, approved: true } : v));
   };
 
   const resetAll = () => {
@@ -69,7 +118,9 @@ export default function ReviewApply() {
   };
 
   const approvedCount = values.filter(v => v.approved).length;
-  const totalCount = values.length;
+  const detectedValues = values.filter(v => v.status === 'detected');
+  const inferredValues = values.filter(v => v.status === 'inferred');
+  const missingValues = values.filter(v => v.status === 'missing');
 
   const handleApply = () => {
     if (!canCreateProject) {
@@ -79,14 +130,6 @@ export default function ReviewApply() {
 
     const appName = values.find(v => v.field === 'appName')?.value || 'Analyzed Project';
     const projectId = createProject(appName);
-
-    const updates: Record<string, string> = {};
-    for (const v of values) {
-      if (v.approved && v.value) {
-        updates[v.field] = v.value;
-      }
-    }
-
     selectProject(projectId);
 
     setTimeout(() => {
@@ -104,140 +147,143 @@ export default function ReviewApply() {
     }, 100);
 
     sessionStorage.removeItem('playpack_analysis');
-    toast({ title: 'Project created!', description: `"${appName}" has been set up with ${approvedCount} detected values applied.` });
+    toast({ title: 'Project created', description: `"${appName}" is ready with ${approvedCount} values applied.` });
     setLocation('/');
   };
 
   if (!analysis) return null;
 
+  const renderGroup = (title: string, description: string, items: DetectedValue[], borderColor: string) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-6">
+        <div className={`flex items-center gap-2 mb-3 pb-2 border-b ${borderColor}`}>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <span className="text-xs text-muted-foreground/60">({items.length})</span>
+          <span className="text-xs text-muted-foreground/40 ml-auto">{description}</span>
+        </div>
+        <div className="space-y-1">
+          {items.map(v => (
+            <ValueRow
+              key={v.field}
+              v={v}
+              editing={editingField === v.field}
+              onToggle={(approved) => updateValue(v.field, { approved })}
+              onEdit={(value) => updateValue(v.field, { value })}
+              onStartEdit={() => setEditingField(v.field)}
+              onStopEdit={() => setEditingField(null)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto py-8 px-4">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto py-8 px-4">
       <div className="mb-8">
+        <button onClick={() => setLocation(analysis.mode === 'website' ? '/analyze/site' : '/analyze/repo')} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-4 transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to results
+        </button>
         <h1 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             {analysis.mode === 'website' ? <Globe className="w-5 h-5 text-white" /> : <Upload className="w-5 h-5 text-white" />}
           </div>
-          Review Detected Values
+          Review & Apply
         </h1>
-        <p className="text-muted-foreground">Review the extracted values before creating your project. Edit, approve, or reject each finding.</p>
+        <p className="text-muted-foreground">
+          Each value below was extracted from your {analysis.mode === 'website' ? 'website' : 'project files'}.
+          Toggle values on or off, edit anything that looks wrong, then create your project.
+        </p>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <Button variant="outline" size="sm" onClick={approveAllHighConfidence} className="gap-2">
-          <Zap className="w-4 h-4" /> Apply High Confidence
-        </Button>
-        <Button variant="outline" size="sm" onClick={approveAll} className="gap-2">
-          <Check className="w-4 h-4" /> Approve All
-        </Button>
-        <Button variant="ghost" size="sm" onClick={resetAll} className="gap-2">
-          <RotateCcw className="w-4 h-4" /> Reset
-        </Button>
-        <div className="ml-auto text-sm text-muted-foreground self-center">
-          {approvedCount}/{totalCount} approved
-        </div>
-      </div>
-
-      <Card className="mb-6 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left p-3 text-muted-foreground font-medium w-10"></th>
-                <th className="text-left p-3 text-muted-foreground font-medium">Field</th>
-                <th className="text-left p-3 text-muted-foreground font-medium">Value</th>
-                <th className="text-left p-3 text-muted-foreground font-medium w-24">Confidence</th>
-                <th className="text-left p-3 text-muted-foreground font-medium w-24">Status</th>
-                <th className="text-left p-3 text-muted-foreground font-medium">Source</th>
-                <th className="text-left p-3 text-muted-foreground font-medium w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {values.map(v => (
-                <tr key={v.field} className={`border-b border-border/20 hover:bg-muted/20 transition-colors ${v.approved ? '' : 'opacity-60'}`}>
-                  <td className="p-3">
-                    <Checkbox
-                      checked={v.approved}
-                      onCheckedChange={(checked) => updateValue(v.field, { approved: !!checked })}
-                    />
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      {statusIcon(v.status)}
-                      <span className="font-medium text-foreground">{v.label}</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    {editingField === v.field ? (
-                      <Input
-                        autoFocus
-                        value={v.value}
-                        onChange={e => updateValue(v.field, { value: e.target.value, status: v.value !== e.target.value ? 'detected' : v.status })}
-                        onBlur={() => setEditingField(null)}
-                        onKeyDown={e => e.key === 'Enter' && setEditingField(null)}
-                        className="h-8 text-sm"
-                      />
-                    ) : (
-                      <span className="font-mono text-xs text-foreground">{v.value || <span className="text-muted-foreground italic">empty</span>}</span>
-                    )}
-                  </td>
-                  <td className="p-3">{confidenceBadge(v.confidence)}</td>
-                  <td className="p-3">
-                    <span className="text-xs text-muted-foreground capitalize">{v.status}</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-xs text-muted-foreground">{v.sourceDetail || v.source}</span>
-                  </td>
-                  <td className="p-3">
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditingField(editingField === v.field ? null : v.field)}>
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Card className="p-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" onClick={approveAllHighConfidence} className="gap-2 bg-gradient-to-r from-primary to-accent text-white">
+            <Zap className="w-3.5 h-3.5" /> Accept detected & inferred
+          </Button>
+          <Button variant="ghost" size="sm" onClick={resetAll} className="gap-2 text-muted-foreground">
+            <RotateCcw className="w-3.5 h-3.5" /> Reset to defaults
+          </Button>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              <span className="text-foreground font-semibold">{approvedCount}</span> of {values.length} included
+            </span>
+          </div>
         </div>
       </Card>
 
+      {renderGroup(
+        'Detected values',
+        'Found directly in manifest or page source',
+        detectedValues,
+        'border-green-500/20'
+      )}
+      {renderGroup(
+        'Inferred values',
+        'Guessed from available signals — please verify',
+        inferredValues,
+        'border-amber-500/20'
+      )}
+      {renderGroup(
+        'Missing values',
+        'Could not be detected — enter manually or leave empty',
+        missingValues,
+        'border-red-500/20'
+      )}
+
       {analysis.missingCritical.length > 0 && (
-        <Card className="p-5 mb-6 border-amber-500/20">
-          <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" /> Missing Critical Fields
+        <Card className="p-5 mb-6 border-amber-500/15 bg-amber-500/[0.02]">
+          <h3 className="text-xs font-semibold text-amber-400/80 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Shield className="w-3.5 h-3.5" /> Fields that need attention
           </h3>
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {analysis.missingCritical.map((item, i) => (
-              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">•</span> {item}
+              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                {item}
               </li>
             ))}
           </ul>
+          <p className="text-xs text-muted-foreground/50 mt-3">You can still create the project and fill these in later from the Project Setup page.</p>
         </Card>
       )}
 
       {analysis.iconCandidates.length > 0 && (
         <Card className="p-5 mb-6">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icon Candidates ({analysis.iconCandidates.length})</h3>
-          <div className="space-y-1">
-            {analysis.iconCandidates.slice(0, 10).map((icon, i) => (
-              <div key={i} className="flex items-center gap-3 py-1 text-sm">
-                <div className="w-8 h-8 rounded bg-muted/50 flex items-center justify-center overflow-hidden">
-                  <img src={icon.url} alt="" className="w-full h-full object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                </div>
-                <span className="font-mono text-xs text-muted-foreground truncate flex-1">{icon.url}</span>
-                {icon.sizes && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{icon.sizes}</span>}
-                <span className="text-xs text-muted-foreground">{icon.source}</span>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Icon Candidates</h3>
+          <p className="text-xs text-muted-foreground/50 mb-3">{analysis.iconCandidates.length} icon(s) found. The best match has been pre-selected as your launcher icon above.</p>
+          <div className="flex flex-wrap gap-2">
+            {analysis.iconCandidates.slice(0, 12).map((icon, i) => (
+              <div key={i} className="group relative w-14 h-14 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-center overflow-hidden hover:border-primary/40 transition-colors" title={`${icon.url}\n${icon.sizes || 'unknown size'} — ${icon.source}`}>
+                <img src={icon.url} alt="" className="w-full h-full object-contain p-1" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                {icon.sizes && <span className="absolute bottom-0 inset-x-0 text-center text-[8px] text-muted-foreground bg-background/80 py-0.5">{icon.sizes}</span>}
               </div>
             ))}
           </div>
         </Card>
       )}
 
-      <div className="flex justify-between items-center">
-        <Button variant="ghost" onClick={() => setLocation('/intake')}>
-          Back to Intake
+      <Card className="p-5 mb-6 bg-primary/[0.03] border-primary/10">
+        <div className="flex items-start gap-3">
+          <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-1">What happens next</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Clicking the button below creates a new project with the {approvedCount} approved value{approvedCount !== 1 ? 's' : ''} pre-filled.
+              You will land on the project dashboard where you can continue through the full setup wizard:
+              validation, signing, asset links, build config, and export.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <div className="flex justify-between items-center pt-2">
+        <Button variant="ghost" onClick={() => setLocation('/intake')} className="text-muted-foreground">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Start over
         </Button>
-        <Button onClick={handleApply} disabled={approvedCount === 0} className="h-12 px-8 bg-gradient-to-r from-primary to-accent">
-          Create Project with {approvedCount} Values <ArrowRight className="w-5 h-5 ml-2" />
+        <Button onClick={handleApply} disabled={approvedCount === 0} className="h-12 px-8 bg-gradient-to-r from-primary to-accent font-medium">
+          Create Project <ArrowRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
     </motion.div>
