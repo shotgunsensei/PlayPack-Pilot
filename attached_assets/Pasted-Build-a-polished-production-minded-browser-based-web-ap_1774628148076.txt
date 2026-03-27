@@ -1,0 +1,274 @@
+Build a polished, production-minded browser-based web application called “PWA Play Packager”.
+
+Purpose:
+This app should guide a user through converting a Progressive Web App into an Android Google Play Store deployment package using Bubblewrap / Trusted Web Activity concepts. The app is NOT pretending to directly publish to the Play Store. Instead, it should act as a packaging assistant, configuration generator, validation dashboard, and deployment document builder.
+
+Core product goal:
+A user should be able to enter their PWA/app details into a simple GUI and receive:
+1. a generated deployment checklist
+2. a generated manifest.json template
+3. a generated assetlinks.json template
+4. generated Bubblewrap CLI commands
+5. generated Android package metadata
+6. generated GitHub Actions workflow YAML
+7. generated release notes template
+8. generated troubleshooting guidance
+9. exportable documentation package
+10. copy-ready shell commands and optional PowerShell variants
+
+Product positioning:
+This should feel like a practical deployment cockpit for developers, founders, and indie builders trying to package a PWA for Android / Google Play.
+
+Tech stack requirements:
+- Use a clean modern web stack supported well in Replit
+- Prefer React + TypeScript + Vite
+- Use a clean component architecture
+- Use local state first; do not require a backend for MVP
+- Optional lightweight local persistence using localStorage
+- No fake APIs
+- No placeholder broken buttons
+- Every visible button should work
+- Every generated output should be copyable
+- Include export-to-Markdown and export-to-JSON features
+- Include a “download project package” feature that zips all generated files client-side if feasible, otherwise creates downloadable individual files
+
+Design requirements:
+- Visually polished, modern SaaS-style UI
+- Dark mode default
+- Responsive layout
+- Clean sidebar navigation for steps
+- Strong typography
+- Card-based layout
+- Progress stepper/wizard
+- Minimal clutter
+- Should feel trustworthy, technical, and professional
+- Use accent colors sparingly
+- Avoid gimmicky neon overload
+- Include subtle microinteractions
+
+Main app structure:
+Create these primary sections/screens in the GUI:
+
+1. Dashboard
+- Overview of project status
+- Completion progress
+- Quick warnings
+- Summary cards:
+  - PWA readiness
+  - Android metadata readiness
+  - verification readiness
+  - release readiness
+
+2. Project Setup
+Fields:
+- App Name
+- Short Name
+- Domain
+- Base URL
+- Manifest URL
+- Start URL
+- Package ID
+- Theme Color
+- Background Color
+- Orientation
+- Display mode
+- Launcher icon URL
+- Monochrome icon URL
+- Version Code
+- Version Name
+
+3. PWA Validation
+This section should inspect entered values and provide rule-based validation only.
+Examples:
+- Is HTTPS used?
+- Does manifest URL look valid?
+- Does package ID format look correct?
+- Does domain look valid?
+- Does start URL match domain?
+- Are version values present?
+- Are required manifest fields represented?
+Do not claim deep live validation if not actually implemented.
+If live fetch validation is implemented safely in browser, that is a bonus.
+
+4. Signing & Certificate Planner
+Fields:
+- Keystore filename
+- Key alias
+- Store password placeholder
+- Key password placeholder
+- SHA-256 fingerprint
+Outputs:
+- keytool command templates
+- fingerprint lookup commands
+- warnings about secure storage
+This section should clearly explain:
+- upload key vs app signing key
+- what should never be shared
+- what gets stored in GitHub secrets
+
+5. Digital Asset Links Generator
+Generate:
+- /.well-known/assetlinks.json
+Include:
+- package_name
+- sha256_cert_fingerprints
+- relation array
+Add a validation summary for missing values
+
+6. Bubblewrap Build Generator
+Generate copyable commands such as:
+- npm install -g @bubblewrap/cli
+- bubblewrap init --manifest=...
+- bubblewrap build
+- additional command notes
+Also produce a guided sequence panel that explains what each command does.
+
+7. GitHub Actions Generator
+Generate a workflow file for building Android AAB artifacts
+Include placeholders for:
+- ANDROID_KEYSTORE_BASE64
+- ANDROID_KEYSTORE_PASSWORD
+- ANDROID_KEY_ALIAS
+- ANDROID_KEY_PASSWORD
+- PWA_MANIFEST_URL
+Make the YAML realistic and cleanly formatted
+
+8. Play Release Checklist
+Generate a structured checklist covering:
+- PWA readiness
+- assetlinks publishing
+- Android build
+- app links verification
+- internal test upload
+- store listing prep
+- privacy/data safety review
+- version incrementing
+
+9. Documentation Export
+Generate these documents on demand:
+- README.md
+- release-checklist.md
+- signing-notes.md
+- play-store-release-notes.md
+- troubleshooting.md
+- deployment-sop.md
+
+10. File Export Center
+Allow the user to download:
+- manifest.json
+- assetlinks.json
+- github workflow yaml
+- Markdown docs
+- combined JSON project config
+- full export package
+
+Functional requirements:
+- All fields update generated outputs live
+- Include a “Load Example Project” button
+- Include a “Reset Project” button
+- Include a “Copy All Commands” button
+- Include “Copy File Contents” buttons for every generated file panel
+- Include inline validation messages
+- Include a persistent project summary panel
+- Include warnings if critical fields are missing
+- Include a final “Deployment Readiness Score” based on simple deterministic rules
+
+Scoring model:
+Create a transparent scoring system with categories such as:
+- PWA Setup
+- Android Metadata
+- Signing Inputs
+- Verification Inputs
+- Release Preparation
+Display a percent score and a list of missing requirements
+
+Important product behavior:
+- Do not fabricate successful verification
+- Do not fabricate Play Console connectivity
+- Do not pretend to build a real AAB in-browser
+- Be explicit that the tool generates configs, docs, and commands to streamline the deployment process
+- This tool should help people package and prepare, not falsely claim to directly publish apps
+
+Data model:
+Create a well-structured TypeScript schema for project settings and generated outputs.
+Use reusable helper functions for:
+- package ID validation
+- URL normalization
+- domain extraction
+- manifest template generation
+- assetlinks generation
+- markdown generation
+- workflow generation
+- readiness scoring
+
+Architecture requirements:
+- Modular folders
+- Components split logically
+- Utility functions separate from UI
+- Types file
+- Sample data file
+- Export helpers
+- Good code comments for readability
+- No giant monolithic component file
+
+Suggested file organization:
+- src/components/
+- src/pages/
+- src/lib/
+- src/types/
+- src/data/
+- src/hooks/
+- src/utils/
+
+Suggested components:
+- SidebarNav
+- StepWizard
+- StatusCard
+- ValidationBadge
+- FilePreviewPanel
+- CopyButton
+- DownloadButton
+- ScoreRing
+- ProjectForm
+- CommandBlock
+- ChecklistPanel
+
+Suggested UX enhancements:
+- Tabs for generated files
+- Syntax-highlight style code blocks
+- Toast for copy/download success
+- Color-coded readiness states
+- Small helper text under fields
+- Tooltips for technical terms
+
+Include starter content:
+Provide one example project configuration with obvious placeholder values like:
+- app name: Example App
+- domain: example.com
+- package id: com.example.app
+This makes the UI instantly demonstrable.
+
+Build quality requirements:
+- Ensure the app runs successfully in Replit
+- No TypeScript errors
+- No dead imports
+- No placeholder lorem ipsum
+- No unfinished sections
+- Every major section should be implemented
+- Keep the MVP focused but complete
+
+Final output expectations:
+Deliver the full working codebase for this app in the Replit project.
+Also create:
+- a polished landing/dashboard screen
+- a clear empty-state experience
+- an example project preloaded option
+- a concise footer disclaimer stating that this tool assists packaging and preparation but does not itself submit apps to Google Play
+
+Bonus features if time permits:
+- import/export project config JSON
+- compare two configurations
+- multi-project saved profiles
+- light mode toggle
+- template presets for “generic app”, “saas tool”, and “content app”
+- printable final report view
