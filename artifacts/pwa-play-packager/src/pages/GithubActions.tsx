@@ -16,8 +16,10 @@ export default function GithubActions() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
         <h1 className="text-3xl font-display font-bold text-foreground">GitHub Actions Pipeline</h1>
-        <p className="text-muted-foreground mt-1">Automate building the Android app bundle on every code push.</p>
+        <p className="text-muted-foreground mt-1">Review a GitHub.com-hosted runner template for an existing Android project. A generated workflow is not a verified build.</p>
       </div>
+
+      <p className="text-sm text-muted-foreground">Initialize and review app/ locally first, including its checksum, Gradle wrapper and existing signing key. The template expects ../android.keystore and the matching alias; confirm Bubblewrap/SDK runner setup before use. It does not generate signing keys or publish to Google Play.</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
@@ -35,11 +37,8 @@ export default function GithubActions() {
             
             <div className="mt-6 pt-4 border-t border-white/10">
               <p className="text-xs text-muted-foreground">
-                To create the base64 keystore string on Mac/Linux:
+                Use your approved secret-management process to encode an existing owned keystore. Base64 is not encryption; keep the output out of commits and generated packages.
               </p>
-              <code className="block mt-2 text-[10px] bg-black/50 p-2 rounded text-green-300">
-                base64 -i my.keystore | pbcopy
-              </code>
             </div>
           </Card>
         </div>

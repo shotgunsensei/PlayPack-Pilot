@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { ProjectConfig, SigningConfig } from './types';
-import { generateAssetLinks, generateGithubWorkflow, generateReadme, generateReleaseChecklist, generateSigningNotes, generateManifest, generateReleaseNotes, generateTroubleshooting, generateDeploymentSop } from './generators';
+import { generateReleaseKitFiles } from './generators';
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
@@ -27,21 +27,9 @@ export const downloadFile = (filename: string, content: string, contentType: str
 export const downloadCompleteZip = async (project: ProjectConfig, signing: SigningConfig) => {
   const zip = new JSZip();
 
-  const safeSigning = { keystoreFilename: signing.keystoreFilename, keyAlias: signing.keyAlias, sha256Fingerprint: signing.sha256Fingerprint };
-  zip.file('manifest.json', generateManifest(project));
-  zip.file('assetlinks.json', generateAssetLinks(project.packageId, signing.sha256Fingerprint));
-  zip.file('pwa-packager-config.json', JSON.stringify({ project, signing: safeSigning }, null, 2));
-
-  const workflows = zip.folder('.github/workflows');
-  workflows?.file('android-build.yml', generateGithubWorkflow(project));
-
-  const docs = zip.folder('docs');
-  docs?.file('README.md', generateReadme(project));
-  docs?.file('release-checklist.md', generateReleaseChecklist());
-  docs?.file('signing-notes.md', generateSigningNotes(signing));
-  docs?.file('play-store-release-notes.md', generateReleaseNotes(project));
-  docs?.file('troubleshooting.md', generateTroubleshooting(project));
-  docs?.file('deployment-sop.md', generateDeploymentSop(project, signing));
+  for (const [filename, content] of Object.entries(generateReleaseKitFiles(project, signing))) {
+    zip.file(filename, content);
+  }
 
   const content = await zip.generateAsync({ type: 'blob' });
   
