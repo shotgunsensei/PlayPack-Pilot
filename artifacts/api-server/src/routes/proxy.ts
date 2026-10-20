@@ -1,130 +1,8 @@
 import { Router, type Request, type Response } from "express";
 import * as cheerio from "cheerio";
+import { createProxyFetch, normalizeUrl } from "../lib/proxy-fetch";
 
 const router = Router();
-
-const TIMEOUT_MS = 10000;
-const MAX_BODY_SIZE = 2 * 1024 * 1024;
-
-const BLOCKED_HOSTS = [
-  /^localhost$/i,
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2\d|3[01])\./,
-  /^192\.168\./,
-  /^0\./,
-  /^\[::1\]/,
-  /^169\.254\./,
-  /^fc00:/i,
-  /^fe80:/i,
-];
-
-function isBlockedHost(hostname: string): boolean {
-  return BLOCKED_HOSTS.some((pattern) => pattern.test(hostname));
-}
-
-function normalizeUrl(input: string): string | null {
-  let url = input.trim();
-  if (!url) return null;
-  if (!/^https?:\/\//i.test(url)) {
-    url = "https://" + url;
-  }
-  try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) return null;
-    if (isBlockedHost(parsed.hostname)) return null;
-    return parsed.href;
-  } catch {
-    return null;
-  }
-}
-
-function isPrivateIP(ip: string): boolean {
-  if (
-    ip === "127.0.0.1" ||
-    ip === "::1" ||
-    ip === "0.0.0.0" ||
-    ip === "::"
-  )
-    return true;
-  const parts = ip.split(".").map(Number);
-  if (parts.length === 4) {
-    if (parts[0] === 10) return true;
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-    if (parts[0] === 192 && parts[1] === 168) return true;
-    if (parts[0] === 169 && parts[1] === 254) return true;
-    if (parts[0] === 127) return true;
-    if (parts[0] === 0) return true;
-  }
-  if (ip.startsWith("fc00:") || ip.startsWith("fe80:") || ip.startsWith("fd"))
-    return true;
-  return false;
-}
-
-async function validateUrlSafety(url: string): Promise<string | null> {
-  try {
-    const parsed = new URL(url);
-    if (isBlockedHost(parsed.hostname)) return "Blocked host";
-    const dns = await import("dns");
-    const { resolve4, resolve6 } = dns.promises;
-    try {
-      const ips = await resolve4(parsed.hostname);
-      if (ips.some(isPrivateIP)) return "URL resolves to private IP";
-    } catch {}
-    try {
-      const ips6 = await resolve6(parsed.hostname);
-      if (ips6.some(isPrivateIP)) return "URL resolves to private IP";
-    } catch {}
-    return null;
-  } catch {
-    return "Invalid URL";
-  }
-}
-
-async function safeFetch(
-  url: string,
-): Promise<{ ok: boolean; text?: string; status?: number; error?: string }> {
-  const safety = await validateUrlSafety(url);
-  if (safety) return { ok: false, error: safety };
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (PlayPackPilot Analyzer; +https://playpackpilot.app)",
-        Accept: "text/html,application/json,*/*",
-      },
-      redirect: "manual",
-    });
-    clearTimeout(timer);
-
-    if ([301, 302, 303, 307, 308].includes(res.status)) {
-      const redirectUrl = res.headers.get("location");
-      if (!redirectUrl) return { ok: false, error: "Redirect with no location" };
-      const absolute = new URL(redirectUrl, url).href;
-      const redirectSafety = await validateUrlSafety(absolute);
-      if (redirectSafety) return { ok: false, error: `Redirect blocked: ${redirectSafety}` };
-      return safeFetch(absolute);
-    }
-
-    const contentLength = res.headers.get("content-length");
-    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
-      return { ok: false, error: "Response too large" };
-    }
-    const text = await res.text();
-    if (text.length > MAX_BODY_SIZE) {
-      return { ok: false, error: "Response too large" };
-    }
-    return { ok: res.ok, text, status: res.status };
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Failed to fetch URL";
-    return { ok: false, error: message };
-  }
-}
 
 interface ManifestData {
   name?: string;
@@ -187,7 +65,7 @@ function resolveUrl(base: string, relative: string): string {
 }
 
 router.post("/proxy-scan", async (req: Request, res: Response) => {
-  const { url: rawUrl } = req.body as { url?: string };
+  const rawUrl: unknown = req.body?.url;
   if (!rawUrl || typeof rawUrl !== "string") {
     res.status(400).json({ error: "URL is required" });
     return;
@@ -199,6 +77,7 @@ router.post("/proxy-scan", async (req: Request, res: Response) => {
     return;
   }
 
+  const safeFetch = createProxyFetch();
   const result: ScanResult = {
     url: rawUrl,
     finalUrl: url,
