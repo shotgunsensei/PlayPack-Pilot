@@ -7,50 +7,14 @@ import { CommandBlock } from '@/components/CommandBlock';
 import { Copy, Terminal, Monitor } from 'lucide-react';
 import { copyToClipboard } from '@/lib/export-helpers';
 import { useToast } from '@/hooks/use-toast';
+import { generateLocalBuildSteps } from '@/lib/build-commands';
 
 export default function BubblewrapBuild() {
   const { project, signing } = useAppStore();
   const { toast } = useToast();
   const [shellType, setShellType] = useState<'bash' | 'powershell'>('bash');
 
-  const manifestUrl = project.manifestUrl || 'https://example.com/manifest.json';
-  
-  const steps = [
-    {
-      title: 'Install Bubblewrap CLI',
-      description: 'Ensure you have Node.js and JDK 11+ installed before running this.',
-      bash: 'npm install -g @bubblewrap/cli',
-      powershell: 'npm install -g @bubblewrap/cli',
-    },
-    {
-      title: 'Initialize Project',
-      description: 'This creates the Android project files locally based on your web manifest.',
-      bash: `bubblewrap init --manifest="${manifestUrl}"`,
-      powershell: `bubblewrap init --manifest="${manifestUrl}"`,
-    },
-    {
-      title: 'Build the AAB',
-      description: 'Compiles the project into an Android App Bundle (.aab) ready for the Play Store. You will be prompted for your keystore passwords.',
-      bash: `bubblewrap build`,
-      powershell: `bubblewrap build`,
-    },
-    {
-      title: 'Verify the Output',
-      description: 'Check that the AAB file was created successfully.',
-      bash: `ls -la app-release-bundle.aab`,
-      powershell: `Get-ChildItem app-release-bundle.aab`,
-    },
-    {
-      title: 'Sign with Custom Keystore (Optional)',
-      description: 'If you need to manually sign with a specific keystore.',
-      bash: `jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \\
-  -keystore ${signing.keystoreFilename || 'android.keystore'} \\
-  app-release-bundle.aab ${signing.keyAlias || 'android'}`,
-      powershell: `jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \`
-  -keystore ${signing.keystoreFilename || 'android.keystore'} \`
-  app-release-bundle.aab ${signing.keyAlias || 'android'}`,
-    },
-  ];
+  const steps = generateLocalBuildSteps(project, signing);
 
   const allCommands = steps.map(s => shellType === 'bash' ? s.bash : s.powershell).join('\n\n');
 
