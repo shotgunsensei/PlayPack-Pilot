@@ -1,9 +1,9 @@
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLocation } from 'wouter';
 import { Rocket, Shield, Zap, Package, FileCode, GitBranch, CheckCircle2, ChevronDown, ArrowRight, Puzzle, Settings, Terminal, FileText, Download, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
+import './LandingQuality.css';
 
 const features = [
   { icon: Settings, title: 'Smart Project Setup', desc: 'Clean form captures everything: app metadata, package ID, URLs, versioning.' },
@@ -11,7 +11,7 @@ const features = [
   { icon: Puzzle, title: 'Signing Planner', desc: 'Guided keystore setup with generated commands and fingerprint extraction.' },
   { icon: FileCode, title: 'Asset Links Generator', desc: 'Auto-generate assetlinks.json with your package ID and SHA-256 fingerprint.' },
   { icon: Terminal, title: 'Bubblewrap CLI Builder', desc: 'Step-by-step commands in Bash or PowerShell for local builds.' },
-  { icon: GitBranch, title: 'GitHub Actions Generator', desc: 'CI/CD workflow YAML for automated builds and releases.' },
+  { icon: GitBranch, title: 'GitHub Actions Generator', desc: 'A build workflow template with explicit signing and review prerequisites.' },
   { icon: CheckCircle2, title: 'Release Checklist', desc: 'Interactive checklist covering every step from build to Play Console submission.' },
   { icon: FileText, title: 'Documentation Suite', desc: 'Generated README, release notes, troubleshooting guide, and deployment SOP.' },
   { icon: Download, title: 'Export Everything', desc: 'Download individual files or a complete deployment package as ZIP.' },
@@ -30,7 +30,7 @@ const faqs = [
   { q: 'Does PlayPack Pilot submit apps to Google Play?', a: 'No. PlayPack Pilot generates the configs, commands, documentation, and deployment packages you need. You still upload to Play Console yourself. We never mislead about capabilities.' },
   { q: 'Do I need a backend or build server?', a: 'No. PlayPack Pilot runs entirely in your browser. Generated commands are meant to be run in your local terminal or CI/CD pipeline.' },
   { q: 'What is a TWA / Trusted Web Activity?', a: 'A TWA wraps your Progressive Web App in an Android shell using Chrome Custom Tabs. It is the recommended way to put a PWA on the Play Store without maintaining a native codebase.' },
-  { q: 'Is my data stored securely?', a: 'All project data is stored locally in your browser. Passwords are never persisted. We do not send data to external servers.' },
+  { q: 'Is my data stored securely?', a: 'Project information stays in this browser unless you export it. Keep signing keys, passwords, and other secrets outside project files. Site diagnostics send the public URL you choose to the application API; they are separate from local project storage.' },
   { q: 'Can I export my project and use it later?', a: 'Yes. You can export any project as a JSON file and re-import it anytime, even on a different device.' },
 ];
 
@@ -39,63 +39,64 @@ export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="pp-landing min-h-screen bg-background text-foreground">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="pp-header max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
               <Rocket className="w-5 h-5 text-white" />
             </div>
             <span className="font-display font-bold text-lg">PlayPack Pilot</span>
           </div>
-          <div className="flex items-center gap-3">
+          <nav aria-label="Main navigation" className="pp-navigation flex items-center gap-3">
             <Button variant="ghost" onClick={() => setLocation('/pricing')}>Pricing</Button>
             <Button variant="ghost" onClick={() => setLocation('/auth')}>Sign In</Button>
             <Button onClick={() => setLocation('/projects')} className="bg-gradient-to-r from-primary to-accent border-0">
               Launch Packager <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
-          </div>
+          </nav>
         </div>
       </header>
 
-      <section className="relative overflow-hidden">
+      <section className="pp-hero relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl opacity-30" />
-        <div className="max-w-4xl mx-auto px-6 py-24 text-center relative z-10">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+        <div className="pp-hero-layout mx-auto px-6 relative z-10">
+          <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-xs text-primary font-medium mb-8">
-              <Rocket className="w-3.5 h-3.5" /> Your runway from PWA to Play Store
+              <Rocket className="w-3.5 h-3.5" /> A clear path from web project to release kit
             </div>
             <h1 className="text-5xl md:text-6xl font-display font-bold leading-tight mb-6 bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text">
-              Turn your PWA into a <br />
-              <span className="text-transparent bg-gradient-to-r from-primary to-accent bg-clip-text">Play Store-ready app</span>
-              <br />without the chaos
+              Prepare your PWA<br />
+              <span className="text-transparent bg-gradient-to-r from-primary to-accent bg-clip-text">for Android.</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-              Generate configs, commands, and deployment packages for Android in minutes.
-              No guesswork. No broken docs. No wasted launches.
+              Bring your app details together, generate the files you need, and work through a reviewable build checklist. You keep control of signing, testing, and publication.
             </p>
-            <div className="flex gap-4 justify-center flex-wrap">
+            <div className="flex gap-4 flex-wrap">
               <Button size="lg" onClick={() => setLocation('/projects')} className="h-14 px-8 text-lg bg-gradient-to-r from-primary to-accent border-0 shadow-xl shadow-primary/20">
                 Launch Packager <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => setLocation('/projects')} className="h-14 px-8 text-lg border-white/10">
-                View Demo Project
-              </Button>
+              <a href="#workflow" className="pp-secondary-link">Explore the workflow <ArrowRight className="w-4 h-4" aria-hidden="true" /></a>
             </div>
-            <p className="text-sm text-muted-foreground/60 mt-4">No install required &bull; Works in browser &bull; Export everything</p>
-          </motion.div>
+            <p className="pp-footnote text-sm text-muted-foreground mt-4">Browser-based preparation &bull; Local project files &bull; No automatic publishing</p>
+          </div>
+          <aside className="pp-kit" aria-label="Files in your release kit">
+            <div className="pp-kit-header"><Package size={22} aria-hidden="true" /><span>Your release kit</span><span className="pp-kit-label">Prepared for review</span></div>
+            {[['README.md','Your project and build instructions'],['assetlinks.json','Website-to-app association'],['android-build.yml','A workflow template for your repository'],['release-checklist.md','The acceptance checks you complete']].map(([title,detail])=><div className="pp-kit-file" key={title}><FileCode size={21} aria-hidden="true" /><div><strong>{title}</strong><span>{detail}</span></div></div>)}
+            <p><Shield size={18} aria-hidden="true" /> Signing material stays under your control. Generated files still need review and a real build.</p>
+          </aside>
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 py-16">
+      <section id="workflow" className="pp-workflow max-w-5xl mx-auto px-6 py-16" aria-label="Preparation workflow">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
-            { icon: Puzzle, title: 'No More Guesswork', desc: 'Everything you need to package your PWA, mapped step-by-step.' },
-            { icon: Zap, title: 'Auto-Generated Everything', desc: 'Manifest, assetlinks, CI/CD, release docs, and commands.' },
-            { icon: Rocket, title: 'Launch Faster', desc: 'Go from idea to Play Store pipeline in under 30 minutes.' },
+            { icon: Puzzle, title: '1. Describe your app', desc: 'Collect the public URLs, app identity, icons, and version details.' },
+            { icon: Zap, title: '2. Prepare the files', desc: 'Review generated configuration, association files, documentation, and commands.' },
+            { icon: Rocket, title: '3. Build and verify', desc: 'Use your own approved toolchain and signing material, then test on a real device.' },
           ].map((item, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+            <div key={i}>
               <Card className="glass-card p-8 text-center hover:border-primary/30 transition-colors">
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <item.icon className="w-7 h-7 text-primary" />
@@ -103,7 +104,7 @@ export default function Landing() {
                 <h3 className="text-lg font-bold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.desc}</p>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -130,13 +131,13 @@ export default function Landing() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (i % 3) * 0.1 }}>
+            <div key={i}>
               <Card className="glass-card p-6 hover:border-primary/20 transition-colors h-full">
                 <f.icon className="w-8 h-8 text-primary mb-3" />
                 <h3 className="font-bold mb-1">{f.title}</h3>
                 <p className="text-sm text-muted-foreground">{f.desc}</p>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -149,13 +150,15 @@ export default function Landing() {
               <div key={i} className="border border-border/50 rounded-xl overflow-hidden">
                 <button
                   className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
+                  aria-expanded={openFaq === i}
+                  aria-controls={`playpack-faq-${i}`}
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 >
                   <span className="font-medium text-foreground pr-4">{faq.q}</span>
                   <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform shrink-0 ${openFaq === i ? 'rotate-180' : ''}`} />
                 </button>
                 {openFaq === i && (
-                  <div className="px-5 pb-5">
+                  <div id={`playpack-faq-${i}`} className="px-5 pb-5">
                     <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
                   </div>
                 )}
@@ -168,7 +171,7 @@ export default function Landing() {
       <section className="py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-display font-bold mb-4">Ready to package your PWA?</h2>
-          <p className="text-lg text-muted-foreground mb-8">Start for free. Upgrade when you're ready.</p>
+          <p className="text-lg text-muted-foreground mb-8">Start with your project details. Review each step before you build.</p>
           <Button size="lg" onClick={() => setLocation('/projects')} className="h-14 px-10 text-lg bg-gradient-to-r from-primary to-accent border-0 shadow-xl shadow-primary/20">
             Get Started Free <ArrowRight className="w-5 h-5 ml-2" />
           </Button>

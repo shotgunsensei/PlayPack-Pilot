@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { 
   LayoutDashboard, Settings as SettingsIcon, ShieldCheck, Key, Link as LinkIcon, 
   TerminalSquare, Github, ListChecks, FileText, Download, 
-  Rocket, FolderOpen, Crown, User, LogOut, CreditCard, Sparkles, Shield
+  Rocket, FolderOpen, Crown, User, LogOut, CreditCard, Sparkles, Shield, Menu
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { StepWizard } from '@/components/StepWizard';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import './SidebarQuality.css';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -25,10 +27,10 @@ const navItems = [
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { activeProject, user, isProUser, isAdmin, signOut } = useAppStore();
+  const [navigationOpen, setNavigationOpen] = useState(false);
 
-  return (
-    <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/30 selection:text-primary-foreground">
-      <div className="w-72 border-r border-border/50 bg-card/50 backdrop-blur-xl flex flex-col z-10 shadow-2xl relative">
+  const sidebar = (
+      <div className="pp-sidebar w-72 border-r border-border/50 bg-card/50 backdrop-blur-xl flex flex-col z-10 shadow-2xl relative">
         <div className="p-6 border-b border-border/50 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
             <Rocket className="w-6 h-6 text-white" />
@@ -107,7 +109,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3 px-4 py-2.5 text-xs text-muted-foreground">
               <User className="w-3.5 h-3.5 opacity-70" />
               <span className="truncate flex-1">{user.displayName}</span>
-              <button onClick={() => signOut()} className="text-muted-foreground/60 hover:text-foreground"><LogOut className="w-3.5 h-3.5" /></button>
+              <button onClick={() => signOut()} aria-label="Sign out" className="text-muted-foreground hover:text-foreground"><LogOut className="w-3.5 h-3.5" aria-hidden="true" /></button>
             </div>
           ) : (
             <Link href="/auth">
@@ -118,8 +120,23 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </div>
+  );
 
-      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+  return (
+    <div className="pp-app-shell flex h-screen bg-background overflow-hidden selection:bg-primary/30 selection:text-primary-foreground">
+      <div className="pp-desktop-sidebar">{sidebar}</div>
+      <div className="pp-work-area flex-1 flex flex-col h-full relative overflow-hidden">
+        <header className="pp-mobile-bar">
+          <Sheet open={navigationOpen} onOpenChange={setNavigationOpen}>
+            <SheetTrigger asChild><Button variant="outline" size="sm" aria-label="Open project navigation"><Menu size={18} aria-hidden="true" /> Menu</Button></SheetTrigger>
+            <SheetContent side="left" className="pp-mobile-navigation" onClickCapture={event => { if ((event.target as HTMLElement).closest('a')) setNavigationOpen(false); }}>
+              <SheetTitle className="sr-only">PlayPack project navigation</SheetTitle>
+              <SheetDescription className="sr-only">Choose a project, preparation step, or account option.</SheetDescription>
+              {sidebar}
+            </SheetContent>
+          </Sheet>
+          <span>PlayPack Pilot</span>
+        </header>
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50 z-20" />
         <main className="flex-1 overflow-y-auto p-8 relative z-10">
           <div className="max-w-5xl mx-auto pb-20">
@@ -127,7 +144,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
-        <footer className="py-3 text-center text-xs text-muted-foreground/60 border-t border-border/50 bg-background/50 backdrop-blur-md absolute bottom-0 inset-x-0 z-20">
+        <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/50 bg-background/50 backdrop-blur-md absolute bottom-0 inset-x-0 z-20">
           PlayPack Pilot &bull; Deployment preparation tool. Does not submit apps to Google Play.
         </footer>
       </div>

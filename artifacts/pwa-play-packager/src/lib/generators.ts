@@ -1,4 +1,6 @@
-import { ProjectConfig, SigningConfig } from './types';
+import type { ProjectConfig, SigningConfig } from './types';
+import { releaseChecklistGroups } from './release-checklist';
+import { bashCodeBlock, quoteShellArg } from './build-commands';
 
 export const generateAssetLinks = (packageId: string, fingerprint: string) => {
   if (!packageId || !fingerprint) return '{"error": "Missing package ID or fingerprint"}';
@@ -15,23 +17,33 @@ export const generateAssetLinks = (packageId: string, fingerprint: string) => {
   return JSON.stringify(json, null, 2);
 };
 
-export const generateGithubWorkflow = (project: ProjectConfig) => {
-  return `name: Android AAB Build
+// The reviewed Android project is prepared locally; no project input is interpolated into shell/YAML.
+export const generateGithubWorkflow = (_project: ProjectConfig) => {
+  return `# Template for GitHub.com-hosted Ubuntu runners, not GitHub Enterprise Server.
+# Commit a locally initialized, reviewed app/ project and configure existing owned signing secrets.
+# Runner/SDK setup and a real signed Android build must be verified before release.
+name: Android AAB Build
 on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 24
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -39,39 +51,60 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Check the reviewed Android project
+        env:
+          ANDROID_KEY_ALIAS: \${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -f app/twa-manifest.json
+          test -f app/manifest-checksum.txt
+          test -f app/gradlew
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const manifest = fs.readFileSync('app/twa-manifest.json');
+          const config = JSON.parse(manifest.toString('utf8'));
+          const checksum = crypto.createHash('sha1').update(manifest).digest('hex');
+          if (fs.readFileSync('app/manifest-checksum.txt', 'utf8') !== checksum) {
+            throw new Error('Update and review the Android project locally before running this template');
+          }
+          if (config.signingKey?.path !== '../android.keystore' ||
+              !process.env.ANDROID_KEY_ALIAS || config.signingKey.alias !== process.env.ANDROID_KEY_ALIAS) {
+            throw new Error('Review the existing signing key path and alias before running this template');
+          }
+          NODE
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Decode Keystore
+      - name: Decode the existing upload keystore
         env:
           ANDROID_KEYSTORE_BASE64: \${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > android.keystore
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android.keystore
+          test -s android.keystore
 
-      - name: Initialize Bubblewrap Project
-        run: |
-          bubblewrap init --manifest="${project.manifestUrl || 'https://example.com/manifest.json'}" \\
-            --directory=app \\
-            --alphaDependencies
-
-      - name: Build AAB
+      - name: Build AAB from the reviewed project
+        working-directory: app
         env:
-          ANDROID_KEYSTORE_PASSWORD: \${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: \${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: \${{ secrets.ANDROID_KEY_PASSWORD }}
+          BUBBLEWRAP_KEYSTORE_PASSWORD: \${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: \${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cd app
-          # Inject keystore passwords into bubblewrap config or run build with them
-          bubblewrap build --keyStore=../android.keystore \\
-            --alias=$ANDROID_KEY_ALIAS \\
-            --keyStorePassword=$ANDROID_KEYSTORE_PASSWORD \\
-            --keyPassword=$ANDROID_KEY_PASSWORD
+          test -n "$BUBBLEWRAP_KEYSTORE_PASSWORD"
+          test -n "$BUBBLEWRAP_KEY_PASSWORD"
+          bubblewrap build
 
       - name: Upload AAB Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2; Node24
         with:
           name: app-release
           path: app/app-release-bundle.aab
+          if-no-files-found: error
+          include-hidden-files: false
+
+      - name: Remove the temporary upload keystore
+        if: always()
+        run: rm -f android.keystore
 `;
 };
 
@@ -89,45 +122,22 @@ Ensure the \`assetlinks.json\` file is published at:
 \`https://${project.domain || 'example.com'}/.well-known/assetlinks.json\`
 
 ## Building locally
-1. Install bubblewrap: \`npm i -g @bubblewrap/cli\`
-2. Init: \`bubblewrap init --manifest=${project.manifestUrl}\`
-3. Build: \`bubblewrap build\`
+Review the tool requirements and existing signing configuration before executing these interactive commands:
+${bashCodeBlock(`npm i -g @bubblewrap/cli\nbubblewrap init --manifest=${quoteShellArg(project.manifestUrl || 'https://example.com/manifest.json', 'bash')}\nbubblewrap build`)}
 `;
 };
 
 export const generateReleaseChecklist = () => {
-  return `# Play Store Release Checklist
-
-## 1. Pre-requisites
-- [ ] PWA Manifest is valid and contains icons (512x512 maskable recommended)
-- [ ] Lighthouse PWA score is passing
-- [ ] Lighthouse Performance score is decent
-
-## 2. Verification
-- [ ] \`assetlinks.json\` is deployed to \`/.well-known/assetlinks.json\`
-- [ ] Content-Type for assetlinks is \`application/json\`
-- [ ] Assetlinks tested with Google API testing tool
-
-## 3. Play Console Setup
-- [ ] Create App in Google Play Console
-- [ ] Complete App Content surveys (Privacy Policy, Data Safety, Content Rating)
-- [ ] Set up Store Listing (Descriptions, Screenshots, Feature Graphic)
-
-## 4. Build & Upload
-- [ ] Bump \`versionCode\` and \`versionName\`
-- [ ] Generate signed AAB file
-- [ ] Upload to Internal Testing track
-- [ ] Test on physical Android device
-- [ ] Promote to Production
-`;
+  return '# Play Store Release Checklist\n\n' +
+    'These are manual acceptance checks, not scanner results. Lighthouse 12 removed its PWA category.\n\n' +
+    releaseChecklistGroups.map(group => '## ' + group.category + '\n' +
+      group.items.map(item => '- [ ] ' + item.label).join('\n')).join('\n\n') + '\n';
 };
 
 export const generateSigningNotes = (signing: SigningConfig) => {
   return `# Android Signing Notes
 
-**CRITICAL: DO NOT LOSE YOUR KEYSTORE FILE OR PASSWORDS.**
-
-If you lose the upload key, you will have to request a reset from Google Play Support, which takes days. If you opted out of Play App Signing and lose your app signing key, you can NEVER update the app again.
+Keep the existing owned keystore and passwords in your approved secure backup. This document contains public metadata only. Recovery depends on your Play App Signing enrollment and key type; review the official recovery process before changing any signing identity.
 
 ## Keystore Details
 - **Filename:** ${signing.keystoreFilename}
@@ -135,11 +145,8 @@ If you lose the upload key, you will have to request a reset from Google Play Su
 - **SHA-256 Fingerprint:** ${signing.sha256Fingerprint || 'NOT SET'}
 
 ## Commands
-Generate a new key:
-\`keytool -genkeypair -v -keystore ${signing.keystoreFilename} -alias ${signing.keyAlias} -keyalg RSA -keysize 2048 -validity 10000\`
-
-Extract SHA-256 Fingerprint:
-\`keytool -list -v -keystore ${signing.keystoreFilename} -alias ${signing.keyAlias}\`
+Inspect the existing key and extract its SHA-256 fingerprint (prompts for a password):
+${bashCodeBlock(`keytool -list -v -keystore ${quoteShellArg(signing.keystoreFilename, 'bash')} -alias ${quoteShellArg(signing.keyAlias, 'bash')}`)}
 
 ## GitHub Secrets
 Store the following in your repository's GitHub Secrets:
@@ -148,10 +155,8 @@ Store the following in your repository's GitHub Secrets:
 - \`ANDROID_KEY_ALIAS\` - Key alias (${signing.keyAlias})
 - \`ANDROID_KEY_PASSWORD\` - Key password
 
-To encode your keystore for GitHub Secrets:
-\`\`\`bash
-base64 -i ${signing.keystoreFilename} | pbcopy
-\`\`\`
+If separately authorized, encode an existing owned keystore locally and add it through your approved secret-management process. Never put its bytes or passwords in this package:
+${bashCodeBlock(`base64 < ${quoteShellArg(signing.keystoreFilename, 'bash')}`)}
 `;
 };
 
@@ -189,8 +194,8 @@ export const generateReleaseNotes = (project: ProjectConfig) => {
 
 ### What's New
 - Initial release of ${project.appName || 'the app'} as a native Android experience
-- Full offline support via Progressive Web App technology
-- Seamless integration with Android system features
+- [Describe only offline behavior verified for this release]
+- [Describe only Android integrations verified for this release]
 
 ### Technical Notes
 - Built using Trusted Web Activity (TWA) via Bubblewrap CLI
@@ -198,16 +203,16 @@ export const generateReleaseNotes = (project: ProjectConfig) => {
 - Target domain: ${project.domain || 'example.com'}
 
 ### Short Description (80 chars max)
-${project.appName || 'App'} - now available as a native Android app with full offline support.
+${project.appName || 'App'} - [write a reviewed description of verified capabilities].
 
 ### Full Description
-${project.appName || 'This app'} brings the full web experience to your Android device as a native application. Powered by Progressive Web App technology and Trusted Web Activities, it provides a seamless, fast, and reliable experience that works even when you're offline.
+${project.appName || 'This app'} wraps web content in a Trusted Web Activity. Replace this template with a reviewed description. Packaging alone does not add offline support or prove Android integrations.
 
 Key features:
 - Native Android app experience
-- Offline support
-- Fast loading and smooth performance
-- Automatic updates from the web
+- [Verified offline fallback and reconnect behavior]
+- [Measured loading and responsiveness]
+- [Tested web/service-worker update behavior]
 `;
 };
 
@@ -235,16 +240,17 @@ export const generateTroubleshooting = (project: ProjectConfig) => {
 ### 3. Build Fails with Bubblewrap
 **Cause:** Environment or dependency issue.
 **Fix:**
-- Ensure JDK 11+ is installed: \`java -version\`
+- Verify the JDK required by your reviewed Bubblewrap version: \`java -version\`
 - Ensure Android SDK is available or let Bubblewrap download it
-- Try clearing the Bubblewrap cache: \`rm -rf ~/.aspect/aspect-cli\`
-- Re-run: \`bubblewrap init --manifest="${project.manifestUrl || 'https://yourdomain.com/manifest.json'}"\`
+- Inspect the reviewed Bubblewrap documentation before changing tool configuration or caches; preserve signing material
+- Review local initialization before re-running:
+${bashCodeBlock(`bubblewrap init --manifest=${quoteShellArg(project.manifestUrl || 'https://yourdomain.com/manifest.json', 'bash')}`)}
 
 ### 4. Keystore Issues
 **Fix:**
 - Verify your keystore file exists and is not corrupted
 - Confirm the alias matches: \`keytool -list -keystore your.keystore\`
-- If password is forgotten, you cannot recover it — generate a new key and update assetlinks
+- If access is lost, review Play App Signing recovery for your key type before changing signing identity or asset links
 
 ### 5. Version Code Conflicts on Upload
 **Cause:** Play Console requires strictly incrementing version codes.
@@ -278,24 +284,25 @@ This document outlines the step-by-step process for deploying ${project.appName 
 ## Step 1: Prepare the Web App
 - Deploy latest changes to ${project.domain || 'your domain'}
 - Verify the manifest at ${project.manifestUrl || 'your manifest URL'}
-- Run Lighthouse PWA audit and ensure passing score
+- On the target Android device, verify install/launch, offline fallback, reconnect and service-worker updates
+- Lighthouse has no PWA score since version12; retain separate performance/accessibility evidence
 
 ## Step 2: Build the Android Package
-\`\`\`bash
-# Install/update Bubblewrap
+${bashCodeBlock(`# Review and install Bubblewrap
 npm install -g @bubblewrap/cli
 
 # Initialize (first time only)
-bubblewrap init --manifest="${project.manifestUrl || 'https://yourdomain.com/manifest.json'}"
+bubblewrap init --manifest=${quoteShellArg(project.manifestUrl || 'https://yourdomain.com/manifest.json', 'bash')}
 
 # Build the AAB
-bubblewrap build
-\`\`\`
+bubblewrap build`)}
 
-## Step 3: Sign the AAB
-The build step will prompt for keystore details:
+## Step 3: Verify Signing
+Initialization records the existing signing key in twa-manifest.json; the build prompts for its passwords and signs the output. Confirm the reviewed configuration and inspect the resulting bundle before upload:
 - Keystore: ${signing.keystoreFilename}
 - Alias: ${signing.keyAlias}
+
+For the generated GitHub.com workflow, commit the reviewed Android project under app/, keep its manifest-checksum.txt in sync through Bubblewrap's local update flow, and configure its signingKey.path as ../android.keystore. Runner SDK setup and a real signed build remain separate acceptance checks.
 
 ## Step 4: Upload to Play Console
 1. Open Google Play Console
@@ -321,8 +328,28 @@ If critical issues are found:
 
 ## Contacts & Resources
 - Play Console: https://play.google.com/console
-- Bubblewrap CLI: https://www.npmjs.com/package/@nickersk/nickersk.github.io
+- Bubblewrap CLI: https://www.npmjs.com/package/@bubblewrap/cli
 - TWA Docs: https://developer.chrome.com/docs/android/trusted-web-activity
 - Digital Asset Links Tool: https://developers.google.com/digital-asset-links/tools/generator
 `;
+};
+
+export const generateReleaseKitFiles = (project: ProjectConfig, signing: SigningConfig): Record<string, string> => {
+  const safeSigning = {
+    keystoreFilename: signing.keystoreFilename,
+    keyAlias: signing.keyAlias,
+    sha256Fingerprint: signing.sha256Fingerprint,
+  };
+  return {
+    'manifest.json': generateManifest(project),
+    'assetlinks.json': generateAssetLinks(project.packageId, signing.sha256Fingerprint),
+    'pwa-packager-config.json': JSON.stringify({ project, signing: safeSigning }, null, 2),
+    '.github/workflows/android-build.yml': generateGithubWorkflow(project),
+    'docs/README.md': generateReadme(project),
+    'docs/release-checklist.md': generateReleaseChecklist(),
+    'docs/signing-notes.md': generateSigningNotes(signing),
+    'docs/play-store-release-notes.md': generateReleaseNotes(project),
+    'docs/troubleshooting.md': generateTroubleshooting(project),
+    'docs/deployment-sop.md': generateDeploymentSop(project, signing),
+  };
 };
