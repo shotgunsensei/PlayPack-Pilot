@@ -132,7 +132,7 @@ export default function Projects() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="pp-projects max-w-5xl mx-auto px-6 py-8 space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Projects</h1>
@@ -154,7 +154,7 @@ export default function Projects() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..." className="pl-10 bg-black/20" />
         </div>
-        <div className="flex gap-2">
+        <div className="pp-project-actions flex gap-2">
           <Button variant="outline" size="sm" className={`border-white/10 ${showArchived ? 'bg-primary/10 text-primary' : ''}`} onClick={() => setShowArchived(!showArchived)}>
             <Archive className="w-4 h-4 mr-1" /> {showArchived ? 'Archived' : 'Active'}
           </Button>
@@ -175,7 +175,7 @@ export default function Projects() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card className="glass-card p-12 flex flex-col items-center text-center">
+        <Card className="pp-project-empty glass-card p-12 flex flex-col items-center text-center">
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             <FolderOpen className="w-10 h-10 text-primary/50" />
           </div>
@@ -188,7 +188,7 @@ export default function Projects() {
               : 'Create your first project to start generating deployment packages for the Play Store.'}
           </p>
           {!showArchived && (
-            <div className="flex gap-3">
+            <div className="pp-project-empty-actions flex gap-3">
               <Button onClick={() => setShowNewDialog(true)} className="bg-gradient-to-r from-primary to-accent border-0">
                 <Plus className="w-4 h-4 mr-1" /> Create Project
               </Button>

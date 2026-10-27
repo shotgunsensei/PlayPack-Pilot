@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import type { RepoAnalysisResult, RepoFile, AnalysisResult, DetectedValue, IconCandidate, ReadinessItem } from '@/lib/analysis-types';
+import { assertSafeZipPath, MAX_ZIP_EXPANDED_BYTES, readZipEntry } from './zip-entry';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_FILES = 5000;
@@ -71,16 +72,20 @@ export async function analyzeZip(file: File): Promise<RepoAnalysisResult> {
   }
 
   for (const [path, zipEntry] of entries) {
+    // JSZip sanitizes traversal names. Reject their documented original name
+    // too, rather than silently analyzing a renamed or colliding entry.
+    assertSafeZipPath(zipEntry.unsafeOriginalName ?? path);
     if (zipEntry.dir) continue;
 
     const relativePath = rootPrefix ? path.replace(rootPrefix, '') : path;
     if (!relativePath || relativePath.startsWith('.git/') || relativePath.includes('node_modules/')) continue;
 
-    const size = zipEntry._data?.uncompressedSize || 0;
-    totalSize += size;
-
     const matchedCategory = RELEVANT_PATTERNS.find(p => p.pattern.test(relativePath));
     const relevant = !!matchedCategory || isIconPath(relativePath);
+    const entry = await readZipEntry(zipEntry, MAX_ZIP_EXPANDED_BYTES - totalSize,
+      relevant && TEXT_EXTENSIONS.some(ext => relativePath.toLowerCase().endsWith(ext)));
+    const size = entry.size;
+    totalSize += size;
 
     const repoFile: RepoFile = {
       path: relativePath,
@@ -90,11 +95,7 @@ export async function analyzeZip(file: File): Promise<RepoAnalysisResult> {
       category: matchedCategory?.category || (isIconPath(relativePath) ? 'icon' : undefined),
     };
 
-    if (relevant && TEXT_EXTENSIONS.some(ext => relativePath.toLowerCase().endsWith(ext)) && size < 512 * 1024) {
-      try {
-        repoFile.content = await zipEntry.async('string');
-      } catch {}
-    }
+    if (entry.content !== undefined) repoFile.content = entry.content;
 
     repoFiles.push(repoFile);
 

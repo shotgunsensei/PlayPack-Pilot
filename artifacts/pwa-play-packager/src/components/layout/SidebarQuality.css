@@ -1,0 +1,11 @@
+.pp-app-shell{height:100dvh}
+.pp-desktop-sidebar{width:288px;flex-shrink:0;height:100%}
+.pp-sidebar{height:100%;width:100%;min-height:0}
+.pp-work-area{min-width:0}
+.pp-mobile-bar{display:none}
+.pp-app-shell :is(a,button,input):focus-visible{outline:2px solid #a5c8ff;outline-offset:3px}
+.pp-mobile-navigation{padding:0;width:min(320px,calc(100vw - 32px));max-width:none}
+.pp-mobile-navigation>button{z-index:20;display:grid;place-items:center;width:44px;height:44px;top:8px;right:8px;background:#152136;border:1px solid #344259;opacity:1}
+.pp-mobile-navigation .pp-sidebar>div:first-child{padding-right:60px}
+@media(max-width:900px){.pp-desktop-sidebar{display:none}.pp-mobile-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;padding:12px 20px;border-bottom:1px solid #26334a;background:#0c1424;flex-shrink:0}.pp-mobile-bar>span{font-weight:700;font-size:14px}.pp-work-area>main{padding:24px 20px;min-height:0}.pp-work-area>footer{position:static;padding:12px 20px;line-height:1.6;flex-shrink:0}.pp-mobile-navigation .pp-sidebar{border:0}.pp-mobile-navigation a{min-height:44px}.pp-mobile-navigation [data-state]{max-width:100%}}
+@media(max-width:900px){.pp-projects{padding:8px 0}.pp-project-actions{flex-wrap:wrap}.pp-project-actions>button{min-height:44px}.pp-project-empty{padding:32px 20px}.pp-project-empty-actions{flex-wrap:wrap;justify-content:center}.pp-project-empty-actions>button{min-height:44px}.pp-mobile-bar button{min-height:44px}}
